@@ -129,23 +129,23 @@
 <body>
 <header class="appbar">
   <h1>Master DD1750 Packing List Generator</h1>
-  <p>Drop child 1750 PDFs &rarr; auto-parse MEIs &rarr; review &rarr; generate the master packing list.</p>
+  <p>Drop individual 1750 PDFs &rarr; auto-parse MEIs &rarr; review &rarr; generate the master packing list.</p>
 </header>
 
 <div class="wrap">
 
-  <!-- 1. UPLOAD (tabs: child PDFs or SHR CSV) -->
+  <!-- 1. UPLOAD (tabs: individual PDFs or SHR CSV) -->
   <div class="card">
     <h2>1 &middot; Upload Source</h2>
     <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
-      <button id="tabPdf" class="tab-btn tab-active" onclick="switchTab('pdf')">Child 1750 PDFs</button>
+      <button id="tabPdf" class="tab-btn tab-active" onclick="switchTab('pdf')">Individual 1750 PDFs</button>
       <button id="tabCsv" class="tab-btn" onclick="switchTab('csv')">SHR Extract CSV</button>
     </div>
 
     <!-- PDF tab -->
     <div id="panelPdf">
       <div id="dropzone">
-        <p><strong>Drag &amp; drop</strong> child 1750 PDFs here, or <strong>click to browse</strong>.</p>
+        <p><strong>Drag &amp; drop</strong> individual 1750 PDFs here, or <strong>click to browse</strong>.</p>
         <p class="muted">Filenames are parsed for Model / LIN / Serial. Multiple files OK.</p>
         <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none;">
       </div>
