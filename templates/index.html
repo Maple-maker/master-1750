@@ -116,6 +116,14 @@
   .badge-ERROR { background: var(--danger); color:#fff; }
   .badge-WARNING { background: var(--warning); color:#fff; }
   .muted { color:#718096; font-size:0.8rem; }
+  .tab-btn {
+    background: none; border: none; border-bottom: 3px solid transparent;
+    border-radius: 0; padding: 8px 18px; font-size: 0.9rem; font-weight: 600;
+    color: #718096; cursor: pointer; margin-bottom: -2px;
+  }
+  .tab-btn:hover { color: var(--primary); filter: none; }
+  .tab-active { color: var(--primary); border-bottom-color: var(--accent); }
+  #csvDropzone.drag { background: #dbeafe; border-color: var(--primary); }
 </style>
 </head>
 <body>
@@ -126,15 +134,33 @@
 
 <div class="wrap">
 
-  <!-- 1. DROP ZONE -->
+  <!-- 1. UPLOAD (tabs: child PDFs or SHR CSV) -->
   <div class="card">
-    <h2>1 &middot; Upload Child 1750 PDFs</h2>
-    <div id="dropzone">
-      <p><strong>Drag &amp; drop</strong> child 1750 PDFs here, or <strong>click to browse</strong>.</p>
-      <p class="muted">Filenames are parsed for Model / LIN / Serial. Multiple files OK.</p>
-      <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none;">
+    <h2>1 &middot; Upload Source</h2>
+    <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
+      <button id="tabPdf" class="tab-btn tab-active" onclick="switchTab('pdf')">Child 1750 PDFs</button>
+      <button id="tabCsv" class="tab-btn" onclick="switchTab('csv')">SHR Extract CSV</button>
     </div>
-    <div id="uploadStatus"></div>
+
+    <!-- PDF tab -->
+    <div id="panelPdf">
+      <div id="dropzone">
+        <p><strong>Drag &amp; drop</strong> child 1750 PDFs here, or <strong>click to browse</strong>.</p>
+        <p class="muted">Filenames are parsed for Model / LIN / Serial. Multiple files OK.</p>
+        <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none;">
+      </div>
+      <div id="uploadStatus"></div>
+    </div>
+
+    <!-- CSV tab -->
+    <div id="panelCsv" style="display:none;">
+      <div id="csvDropzone" style="border:2px dashed var(--accent);border-radius:10px;padding:38px 16px;text-align:center;color:#4a5568;cursor:pointer;background:#f0f6ff;">
+        <p><strong>Drag &amp; drop</strong> the SHR extract CSV here, or <strong>click to browse</strong>.</p>
+        <p class="muted">Export from the SHR Extractor tool first, then upload here.</p>
+        <input type="file" id="csvInput" accept=".csv" style="display:none;">
+      </div>
+      <div id="csvStatus"></div>
+    </div>
   </div>
 
   <!-- 2. HEADER FORM -->
@@ -386,6 +412,36 @@ function renderAudit(data) {
   });
 }
 
+/* ---- Tab switching ---- */
+function switchTab(tab) {
+  $("panelPdf").style.display = tab === "pdf" ? "" : "none";
+  $("panelCsv").style.display = tab === "csv" ? "" : "none";
+  $("tabPdf").classList.toggle("tab-active", tab === "pdf");
+  $("tabCsv").classList.toggle("tab-active", tab === "csv");
+}
+
+/* ---- CSV upload ---- */
+async function uploadCsv(fileList) {
+  if (!fileList || !fileList.length) return;
+  const f = fileList[0];
+  $("csvStatus").textContent = `Uploading ${f.name}…`;
+  const fd = new FormData();
+  fd.append("csv", f);
+  try {
+    const resp = await fetch("/upload-csv", { method: "POST", body: fd });
+    const data = await resp.json();
+    if (!resp.ok) {
+      $("csvStatus").textContent = "Error: " + (data.error || resp.statusText);
+      return;
+    }
+    renderRows(data.rows);
+    $("csvStatus").textContent =
+      `Parsed ${data.record_count} record(s) → ${data.rows.length} unique item(s) loaded into the table.`;
+  } catch (e) {
+    $("csvStatus").textContent = "Upload failed: " + e.message;
+  }
+}
+
 /* ---- Wire up events ---- */
 (function init() {
   const dz = $("dropzone");
@@ -400,6 +456,18 @@ function renderAudit(data) {
     e.preventDefault();
     dz.classList.remove("drag");
     uploadFiles(e.dataTransfer.files);
+  });
+
+  const csvDz = $("csvDropzone");
+  const csvInput = $("csvInput");
+  csvDz.addEventListener("click", () => csvInput.click());
+  csvInput.addEventListener("change", () => uploadCsv(csvInput.files));
+  csvDz.addEventListener("dragover", (e) => { e.preventDefault(); csvDz.classList.add("drag"); });
+  csvDz.addEventListener("dragleave", () => csvDz.classList.remove("drag"));
+  csvDz.addEventListener("drop", (e) => {
+    e.preventDefault();
+    csvDz.classList.remove("drag");
+    uploadCsv(e.dataTransfer.files);
   });
 
   $("addRowBtn").addEventListener("click", () => {

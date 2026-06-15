@@ -16,8 +16,10 @@ renderer). This file is just plumbing: request parsing, temp-file handling, and
 JSON/PDF responses.
 """
 
+import csv
 import io
 import os
+import re
 import tempfile
 
 from flask import (
@@ -104,6 +106,85 @@ def upload():
         "file_count": len(parsed_list),
         "parsed": per_file,
     })
+
+
+# ---------------------------------------------------------------------------
+# Upload SHR CSV (from shr-extractor) → return rows for the review table
+# ---------------------------------------------------------------------------
+
+@app.route("/upload-csv", methods=["POST"])
+def upload_csv():
+    """
+    Accept a single CSV file exported by the shr-extractor tool.
+    Expected columns: lin, mpo_description, nsn, nsn_description, oh_qty,
+                      serial_number, unit, date
+    Groups rows by (lin, nsn) so each unique item becomes one master row
+    with all its serial numbers consolidated.
+
+    Response: {"rows": [...], "record_count": N}
+    """
+    f = request.files.get("csv")
+    if not f or not f.filename:
+        return jsonify({"error": "No CSV file provided (expected form field 'csv')."}), 400
+    if not f.filename.lower().endswith(".csv"):
+        return jsonify({"error": "File must be a .csv export from the SHR extractor."}), 400
+
+    try:
+        text = f.read().decode("utf-8-sig")  # strip BOM if present
+        reader = csv.DictReader(io.StringIO(text))
+        raw_rows = list(reader)
+    except Exception as e:
+        return jsonify({"error": f"Could not parse CSV: {e}"}), 400
+
+    if not raw_rows:
+        return jsonify({"error": "CSV is empty."}), 400
+
+    # Normalise column names (strip whitespace, lowercase)
+    def col(row, *names):
+        for n in names:
+            for k, v in row.items():
+                if k.strip().lower() == n:
+                    return (v or "").strip()
+        return ""
+
+    # Group by (lin, nsn) → one MasterRow per unique item
+    from collections import OrderedDict
+    groups = OrderedDict()
+    record_count = 0
+
+    for raw in raw_rows:
+        record_count += 1
+        lin = col(raw, "lin").upper()
+        nsn = col(raw, "nsn")
+        model = col(raw, "nsn_description", "mpo_description")
+        sn = col(raw, "serial_number")
+        try:
+            qty = int(col(raw, "oh_qty") or "1")
+        except ValueError:
+            qty = 1
+
+        key = (lin, nsn)
+        if key not in groups:
+            groups[key] = {
+                "model": model,
+                "lin": lin,
+                "nsn": nsn,
+                "serials": [],
+                "qty": qty,
+                "needs_review": False,
+            }
+        if sn and sn not in groups[key]["serials"]:
+            groups[key]["serials"].append(sn)
+
+    # Assign box numbers and update qty to serial count where serials exist
+    rows = []
+    for i, (key, row) in enumerate(groups.items(), start=1):
+        row["box_num"] = i
+        if row["serials"]:
+            row["qty"] = len(row["serials"])
+        rows.append(row)
+
+    return jsonify({"rows": rows, "record_count": record_count})
 
 
 # ---------------------------------------------------------------------------
