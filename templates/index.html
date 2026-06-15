@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master DD1750 Packing List Generator</title>
+<style>
+  :root {
+    --primary: #1a365d;
+    --accent:  #3182ce;
+    --success: #38a169;
+    --warning: #d69e2e;
+    --danger:  #e53e3e;
+    --bg:      #f7fafc;
+    --card:    #fff;
+    --border:  #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: #1a202c;
+  }
+  header.appbar {
+    background: var(--primary);
+    color: #fff;
+    padding: 18px 24px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+  header.appbar h1 { margin: 0; font-size: 1.35rem; font-weight: 600; }
+  header.appbar p  { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.85; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .card h2 {
+    margin: 0 0 14px;
+    font-size: 1.05rem;
+    color: var(--primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  /* Drop zone */
+  #dropzone {
+    border: 2px dashed var(--accent);
+    border-radius: 10px;
+    padding: 38px 16px;
+    text-align: center;
+    color: #4a5568;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    background: #f0f6ff;
+  }
+  #dropzone.drag { background: #dbeafe; border-color: var(--primary); }
+  #dropzone strong { color: var(--primary); }
+  #uploadStatus { margin-top: 10px; font-size: 0.85rem; color: #4a5568; }
+  /* Header form */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 18px;
+  }
+  .field { display: flex; flex-direction: column; }
+  .field label { font-size: 0.78rem; font-weight: 600; color: #4a5568; margin-bottom: 4px; }
+  .field input {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(49,130,206,0.18); }
+  .hint { font-size: 0.72rem; color: var(--warning); margin-top: 3px; }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: middle; }
+  th { background: #edf2f7; color: var(--primary); font-weight: 600; }
+  td input {
+    width: 100%; border: none; background: transparent; font-size: 0.85rem; padding: 3px 4px;
+  }
+  td input:focus { outline: 1px solid var(--accent); background: #fff; border-radius: 4px; }
+  tr.needs-review { background: #fffbea; }
+  td.col-box   { width: 56px; text-align: center; }
+  td.col-qty   { width: 70px; }
+  td.col-rm    { width: 70px; text-align: center; }
+  .col-box input { text-align: center; }
+  /* Buttons */
+  button {
+    font-size: 0.9rem; font-weight: 600; border: none; border-radius: 7px;
+    padding: 9px 16px; cursor: pointer; transition: filter .15s;
+  }
+  button:hover { filter: brightness(0.94); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-ghost   { background: #edf2f7; color: var(--primary); }
+  .btn-danger  { background: var(--danger);  color: #fff; padding: 5px 10px; font-size: 0.78rem; }
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  /* Audit panel */
+  #auditPanel { display: none; }
+  .audit-status {
+    font-weight: 700; padding: 8px 12px; border-radius: 6px; display: inline-block; margin-bottom: 10px;
+  }
+  .audit-pass { background: #c6f6d5; color: #22543d; }
+  .audit-fail { background: #fed7d7; color: #742a2a; }
+  ul.issues { list-style: none; padding: 0; margin: 0; }
+  ul.issues li { padding: 7px 10px; border-radius: 5px; margin-bottom: 6px; font-size: 0.85rem; }
+  li.sev-ERROR   { background: #fff5f5; border-left: 4px solid var(--danger);  color: var(--danger); }
+  li.sev-WARNING { background: #fffaf0; border-left: 4px solid var(--warning); color: #975a16; }
+  .badge { display:inline-block; font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:4px; margin-right:6px; }
+  .badge-ERROR { background: var(--danger); color:#fff; }
+  .badge-WARNING { background: var(--warning); color:#fff; }
+  .muted { color:#718096; font-size:0.8rem; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <h1>Master DD1750 Packing List Generator</h1>
+  <p>Drop child 1750 PDFs &rarr; auto-parse MEIs &rarr; review &rarr; generate the master packing list.</p>
+</header>
+
+<div class="wrap">
+
+  <!-- 1. DROP ZONE -->
+  <div class="card">
+    <h2>1 &middot; Upload Child 1750 PDFs</h2>
+    <div id="dropzone">
+      <p><strong>Drag &amp; drop</strong> child 1750 PDFs here, or <strong>click to browse</strong>.</p>
+      <p class="muted">Filenames are parsed for Model / LIN / Serial. Multiple files OK.</p>
+      <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none;">
+    </div>
+    <div id="uploadStatus"></div>
+  </div>
+
+  <!-- 2. HEADER FORM -->
+  <div class="card">
+    <h2>2 &middot; Header Information</h2>
+    <div class="grid">
+      <div class="field"><label>UIC</label><input id="h_uic" placeholder="WABCD0"></div>
+      <div class="field"><label>Battery</label><input id="h_battery" placeholder="B BTY"></div>
+      <div class="field"><label>Battalion</label><input id="h_battalion" placeholder="1-1 ADA"></div>
+      <div class="field"><label>Packed By (RANK LAST, FIRST)</label><input id="h_packed_by" placeholder="SSG SMITH, JOHN"></div>
+      <div class="field"><label>SHRH POC</label><input id="h_shrh" placeholder="CPT JONES"></div>
+      <div class="field"><label>SLOC / Section</label><input id="h_sloc" placeholder="BLDG-100 / SEC"></div>
+      <div class="field"><label>Container #</label><input id="h_container" placeholder="CONEX-01"></div>
+      <div class="field"><label>SUN #</label><input id="h_sun" placeholder="SUN-2026-001"></div>
+      <div class="field"><label>SEAL #</label><input id="h_seal" placeholder="SEAL-4455"></div>
+      <div class="field"><label>Date</label><input id="h_date" placeholder="15 JUN 2026"></div>
+      <div class="field">
+        <label>Signer Name / Title</label>
+        <input id="h_signer_name" placeholder="1LT BAKER, SAM">
+        <span class="hint">Must differ from Packed By.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. REVIEW TABLE -->
+  <div class="card">
+    <h2>3 &middot; Review &amp; Edit Rows</h2>
+    <table id="rowsTable">
+      <thead>
+        <tr>
+          <th class="col-box">Box #</th>
+          <th>Model / Nomenclature</th>
+          <th>LIN</th>
+          <th>NSN</th>
+          <th>Serials (comma-separated)</th>
+          <th class="col-qty">Qty</th>
+          <th class="col-rm"></th>
+        </tr>
+      </thead>
+      <tbody id="rowsBody">
+        <!-- rows injected by JS -->
+      </tbody>
+    </table>
+    <div class="btn-row">
+      <button class="btn-ghost" id="addRowBtn">+ Add Row</button>
+    </div>
+  </div>
+
+  <!-- 4. ACTIONS -->
+  <div class="card">
+    <h2>4 &middot; Generate / Audit</h2>
+    <div class="actions">
+      <button class="btn-success" id="generateBtn">Generate Master 1750 (PDF)</button>
+      <button class="btn-primary" id="auditBtn">Run Audit</button>
+    </div>
+  </div>
+
+  <!-- 5. AUDIT RESULTS -->
+  <div class="card" id="auditPanel">
+    <h2>Audit Results</h2>
+    <div id="auditStatus"></div>
+    <ul class="issues" id="auditIssues"></ul>
+  </div>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * Master DD1750 — front-end logic (vanilla JS, no build step).
+ * ------------------------------------------------------------------ */
+
+const $ = (id) => document.getElementById(id);
+
+/* ---- Header collection ---- */
+function collectHeader() {
+  return {
+    uic:         $("h_uic").value.trim(),
+    battery:     $("h_battery").value.trim(),
+    battalion:   $("h_battalion").value.trim(),
+    packed_by:   $("h_packed_by").value.trim(),
+    shrh:        $("h_shrh").value.trim(),
+    sloc:        $("h_sloc").value.trim(),
+    container:   $("h_container").value.trim(),
+    sun:         $("h_sun").value.trim(),
+    seal:        $("h_seal").value.trim(),
+    date:        $("h_date").value.trim(),
+    signer_name: $("h_signer_name").value.trim(),
+  };
+}
+
+/* ---- Row building ---- */
+function makeRow(data) {
+  data = data || {};
+  const tr = document.createElement("tr");
+  if (data.needs_review) tr.classList.add("needs-review");
+
+  const serials = Array.isArray(data.serials) ? data.serials.join(", ") : (data.serials || "");
+
+  tr.innerHTML = `
+    <td class="col-box"><input class="r-box" value="${data.box_num || ""}"></td>
+    <td><input class="r-model" value="${escapeHtml(data.model || "")}"></td>
+    <td><input class="r-lin" value="${escapeHtml(data.lin || "")}"></td>
+    <td><input class="r-nsn" value="${escapeHtml(data.nsn || "")}"></td>
+    <td><input class="r-serials" value="${escapeHtml(serials)}"></td>
+    <td class="col-qty"><input class="r-qty" value="${data.qty != null ? data.qty : ""}"></td>
+    <td class="col-rm"><button class="btn-danger r-remove">Remove</button></td>
+  `;
+  tr.querySelector(".r-remove").addEventListener("click", () => {
+    tr.remove();
+    resequence();
+  });
+  return tr;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/* Renumber Box # column 1..N in DOM order */
+function resequence() {
+  const boxes = document.querySelectorAll("#rowsBody .r-box");
+  boxes.forEach((inp, i) => { inp.value = i + 1; });
+}
+
+function renderRows(rows) {
+  const body = $("rowsBody");
+  body.innerHTML = "";
+  rows.forEach((r) => body.appendChild(makeRow(r)));
+  resequence();
+}
+
+/* ---- Row collection ---- */
+function collectRows() {
+  const trs = document.querySelectorAll("#rowsBody tr");
+  const rows = [];
+  trs.forEach((tr, i) => {
+    const serialsRaw = tr.querySelector(".r-serials").value;
+    const serials = serialsRaw.split(",").map((s) => s.trim()).filter((s) => s.length);
+    const qtyVal = parseInt(tr.querySelector(".r-qty").value, 10);
+    rows.push({
+      box_num: i + 1,
+      model:   tr.querySelector(".r-model").value.trim(),
+      lin:     tr.querySelector(".r-lin").value.trim(),
+      nsn:     tr.querySelector(".r-nsn").value.trim(),
+      serials: serials,
+      qty:     isNaN(qtyVal) ? (serials.length || 1) : qtyVal,
+    });
+  });
+  return rows;
+}
+
+/* ---- Upload ---- */
+async function uploadFiles(fileList) {
+  if (!fileList || !fileList.length) return;
+  const fd = new FormData();
+  for (const f of fileList) fd.append("files", f);
+
+  $("uploadStatus").textContent = `Uploading ${fileList.length} file(s)…`;
+  try {
+    const resp = await fetch("/upload", { method: "POST", body: fd });
+    const data = await resp.json();
+    if (!resp.ok) {
+      $("uploadStatus").textContent = "Error: " + (data.error || resp.statusText);
+      return;
+    }
+    renderRows(data.rows);
+    const flagged = data.rows.filter((r) => r.needs_review).length;
+    $("uploadStatus").textContent =
+      `Parsed ${data.file_count} file(s) → ${data.rows.length} row(s)` +
+      (flagged ? `, ${flagged} need review (highlighted).` : ".");
+  } catch (e) {
+    $("uploadStatus").textContent = "Upload failed: " + e.message;
+  }
+}
+
+/* ---- Generate ---- */
+async function generatePDF() {
+  resequence();
+  const rows = collectRows();
+  if (!rows.length) { alert("No rows to generate. Upload files or add a row first."); return; }
+  const payload = { rows, header: collectHeader() };
+
+  try {
+    const resp = await fetch("/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      let msg = resp.statusText;
+      try { msg = (await resp.json()).error || msg; } catch (e) {}
+      alert("Generate failed: " + msg);
+      return;
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Master_DD1750.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert("Generate error: " + e.message);
+  }
+}
+
+/* ---- Audit ---- */
+async function runAudit() {
+  resequence();
+  const payload = { rows: collectRows(), header: collectHeader() };
+  try {
+    const resp = await fetch("/audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    renderAudit(data);
+  } catch (e) {
+    alert("Audit error: " + e.message);
+  }
+}
+
+function renderAudit(data) {
+  $("auditPanel").style.display = "block";
+  const status = $("auditStatus");
+  if (data.passed) {
+    status.innerHTML = `<span class="audit-status audit-pass">PASSED</span> ` +
+      `<span class="muted">${data.box_count} box(es) checked.</span>`;
+  } else {
+    status.innerHTML = `<span class="audit-status audit-fail">FAILED</span> ` +
+      `<span class="muted">${data.box_count} box(es) checked.</span>`;
+  }
+  const ul = $("auditIssues");
+  ul.innerHTML = "";
+  if (!data.issues || !data.issues.length) {
+    ul.innerHTML = `<li class="muted">No issues found.</li>`;
+    return;
+  }
+  data.issues.forEach((iss) => {
+    const li = document.createElement("li");
+    li.className = "sev-" + iss.severity;
+    li.innerHTML = `<span class="badge badge-${iss.severity}">${iss.severity}</span>${escapeHtml(iss.message)}`;
+    ul.appendChild(li);
+  });
+}
+
+/* ---- Wire up events ---- */
+(function init() {
+  const dz = $("dropzone");
+  const input = $("fileInput");
+
+  dz.addEventListener("click", () => input.click());
+  input.addEventListener("change", () => uploadFiles(input.files));
+
+  dz.addEventListener("dragover", (e) => { e.preventDefault(); dz.classList.add("drag"); });
+  dz.addEventListener("dragleave", () => dz.classList.remove("drag"));
+  dz.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dz.classList.remove("drag");
+    uploadFiles(e.dataTransfer.files);
+  });
+
+  $("addRowBtn").addEventListener("click", () => {
+    $("rowsBody").appendChild(makeRow({ qty: 1 }));
+    resequence();
+  });
+  $("generateBtn").addEventListener("click", generatePDF);
+  $("auditBtn").addEventListener("click", runAudit);
+})();
+</script>
+</body>
+</html>
