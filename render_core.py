@@ -139,10 +139,10 @@ def draw_master_header(can, header, page_num, total_pages):
         can.setFont("Helvetica", 7)
         # Left column: Initial Packing List / Container / SUN / SEAL.
         # Start higher (685) + tighter step (8.5) so the 4th line (SEAL) clears
-        # the cell's bottom divider (~652.7); x=82 nudges it left to fit better.
+        # the cell's bottom divider (~652.7); x=47 aligns to the cell's left edge.
         y = 685
         for line in left_lines[:5]:
-            can.drawString(82, y, line[:50])
+            can.drawString(47, y, line[:50])
             y -= 8.5
         # Right column: Major End Items (N) / Box #s — aligned to the right half
         y = 685
@@ -165,7 +165,7 @@ def draw_master_header(can, header, page_num, total_pages):
     # ~x 92..290, y 46..60; we draw the text just inside it, below the label.
     if getattr(header, "typed_name", ""):
         can.setFont("Helvetica", 8)
-        can.drawString(95, 50, str(header.typed_name)[:45])
+        can.drawString(47, 58, str(header.typed_name)[:45])
 
 
 def generate_dd1750_overlay(
