@@ -453,6 +453,61 @@ def build_master_header(header: Dict[str, Any], rows: List[Dict[str, Any]]):
 
 
 # ---------------------------------------------------------------------------
+# Master row condensing — collapse same-model end items into one row
+# ---------------------------------------------------------------------------
+
+def condense_master_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Collapse rows that represent the same end item (same LIN + normalized model)
+    into one row, summing qty and merging serial numbers.  Box numbers are
+    re-sequenced 1..N so the master always starts at 1.
+
+    Example: three KIV-7M rows (box 1, 2, 3) → one row (box 1) with qty=3
+    and serials=[sn1, sn2, sn3].
+    """
+    from collections import OrderedDict
+    groups: OrderedDict = OrderedDict()
+
+    for r in rows:
+        key = (
+            normalize_model(str(r.get("model", "") or "")),
+            str(r.get("lin", "") or "").strip().upper(),
+        )
+        if key not in groups:
+            groups[key] = {
+                "model":   key[0],
+                "lin":     key[1],
+                "nsn":     str(r.get("nsn", "") or "").strip(),
+                "serials": [],
+                "qty":     0,
+            }
+        g = groups[key]
+        # Accumulate serial numbers
+        raw_serials = r.get("serials", [])
+        if isinstance(raw_serials, str):
+            raw_serials = [s.strip() for s in raw_serials.split(",") if s.strip()]
+        for sn in raw_serials:
+            if sn and sn not in g["serials"]:
+                g["serials"].append(sn)
+        # NSN: take the first non-empty value seen
+        if not g["nsn"]:
+            g["nsn"] = str(r.get("nsn", "") or "").strip()
+        g["qty"] += int(r.get("qty", 1) or 1)
+
+    result = []
+    for i, g in enumerate(groups.values(), start=1):
+        result.append({
+            "box_num": i,
+            "model":   g["model"],
+            "lin":     g["lin"],
+            "nsn":     g["nsn"],
+            "serials": g["serials"],
+            "qty":     g["qty"],
+        })
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Serial line splitting (handles 50+ serial numbers per item)
 # ---------------------------------------------------------------------------
 
@@ -535,10 +590,15 @@ def rows_to_bom_items(rows: List[Dict[str, Any]]):
             serials = [s.strip() for s in serials.split(",") if s.strip()]
         qty = int(r.get("qty", len(serials) or 1) or 1)
 
+        # Use the row's ACTUAL box_num as the BOX-NO column value so gaps
+        # (e.g. boxes 1, 2, 5) render correctly. The legacy /generate route
+        # already re-sequences to 1..N before calling here, so it is unaffected.
+        box_no = int(r.get("box_num", i) or i)
+
         serial_lines = _build_serial_lines(lin, nsn, serials)
 
         items.append(BomItem(
-            line_no=i,
+            line_no=box_no,
             description=normalize_model(str(r.get("model", ""))),
             nsn=serial_lines[0],
             qty=qty,
@@ -547,7 +607,7 @@ def rows_to_bom_items(rows: List[Dict[str, Any]]):
 
         for extra in serial_lines[1:]:
             items.append(BomItem(
-                line_no=i,
+                line_no=box_no,
                 description="",
                 nsn=extra,
                 qty=qty,
@@ -562,7 +622,8 @@ def rows_to_bom_items(rows: List[Dict[str, Any]]):
 # Auditor — validates the generated master structure against the rules
 # ---------------------------------------------------------------------------
 
-def audit_master(rows: List[Dict[str, Any]], header: Dict[str, Any]) -> Dict[str, Any]:
+def audit_master(rows: List[Dict[str, Any]], header: Dict[str, Any],
+                 reconciliation: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Validate the master packing list. Returns {passed: bool, issues: [...]}.
 
@@ -570,13 +631,14 @@ def audit_master(rows: List[Dict[str, Any]], header: Dict[str, Any]) -> Dict[str
     ERRORs fail the audit; WARNINGs do not (but are surfaced).
 
     Rule set (from the slideshow + locked decisions):
-      - Box numbers sequential 1..N, no gaps/dupes.            (ERROR on violation)
+      - Duplicate box numbers.                                 (ERROR)
+      - Box numbers not sequential 1..N (gaps like 1,2,5).    (WARNING — flexible packing allowed)
       - Every row has Model + LIN.                             (ERROR if missing)
       - Packer name != Signer name.                            (ERROR if equal)
       - Each row should have at least one serial.              (WARNING if none)
       - NSN present per row.                                   (WARNING if blank)
-      - 'Major End Items: (N)' count == number of rows.        (sanity, computed)
       - qty == len(serials) when serials exist.                (WARNING on mismatch)
+      - reconciliation mismatches (if reconciliation provided). (WARNING)
     """
     issues: List[Dict[str, str]] = []
 
@@ -586,19 +648,21 @@ def audit_master(rows: List[Dict[str, Any]], header: Dict[str, Any]) -> Dict[str
     def warn(msg):
         issues.append({"severity": "WARNING", "message": msg})
 
-    # --- Box numbering 1..N, sequential, unique ---
+    # --- Box numbering: duplicates are ERRORs; gaps are WARNINGs ---
     box_nums = []
     for i, r in enumerate(rows):
         try:
             box_nums.append(int(r.get("box_num", i + 1)))
         except (TypeError, ValueError):
             err(f"Row {i + 1}: box number is not a valid integer.")
-    expected = list(range(1, len(rows) + 1))
-    if box_nums and box_nums != expected:
-        err(f"Box numbers are not sequential 1..{len(rows)} "
-            f"(got {box_nums}). Re-sequence before generating.")
+    # Duplicates are always wrong.
     if len(set(box_nums)) != len(box_nums):
         err("Duplicate box numbers detected.")
+    # Gaps are unusual but allowed (flexible packing) — surface as warning only.
+    expected = list(range(1, len(rows) + 1))
+    if box_nums and sorted(box_nums) != expected:
+        warn(f"Box numbers are not sequential 1..{len(rows)} "
+             f"(got {sorted(box_nums)}). Gaps are allowed but verify intentional.")
 
     # --- Per-row content checks ---
     for i, r in enumerate(rows):
@@ -643,6 +707,15 @@ def audit_master(rows: List[Dict[str, Any]], header: Dict[str, Any]) -> Dict[str
     if n_rows == 0:
         err("No rows to pack — the master list is empty.")
 
+    # --- Reconciliation mismatches (only when SHR was provided) ---
+    if reconciliation:
+        by_bom = reconciliation.get("by_bom", {})
+        for bom_id, rec in by_bom.items():
+            if rec.get("status") != "match":
+                msgs = rec.get("messages", [])
+                detail = "; ".join(str(m) for m in msgs) if msgs else "no details"
+                warn(f"BOM {bom_id} reconcile status '{rec.get('status')}': {detail}")
+
     passed = not any(i["severity"] == "ERROR" for i in issues)
     return {
         "passed": passed,
@@ -654,6 +727,6 @@ def audit_master(rows: List[Dict[str, Any]], header: Dict[str, Any]) -> Dict[str
 __all__ = [
     "ParsedMEI", "MasterRow",
     "parse_filename", "sniff_nsn", "normalize_model",
-    "aggregate_meis", "build_master_header", "rows_to_bom_items",
-    "audit_master",
+    "aggregate_meis", "condense_master_rows", "build_master_header",
+    "rows_to_bom_items", "audit_master",
 ]

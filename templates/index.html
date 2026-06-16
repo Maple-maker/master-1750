@@ -30,7 +30,7 @@
   }
   header.appbar h1 { margin: 0; font-size: 1.35rem; font-weight: 600; }
   header.appbar p  { margin: 4px 0 0; font-size: 0.85rem; opacity: 0.85; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 24px; }
   .card {
     background: var(--card);
     border: 1px solid var(--border);
@@ -46,21 +46,28 @@
     border-bottom: 1px solid var(--border);
     padding-bottom: 8px;
   }
-  /* Drop zone */
-  #dropzone {
+
+  /* ---- File inputs / drop zone ---- */
+  .file-zone {
     border: 2px dashed var(--accent);
-    border-radius: 10px;
-    padding: 38px 16px;
+    border-radius: 8px;
+    padding: 22px 16px;
     text-align: center;
     color: #4a5568;
     cursor: pointer;
     transition: background .15s, border-color .15s;
     background: #f0f6ff;
+    margin-bottom: 10px;
   }
-  #dropzone.drag { background: #dbeafe; border-color: var(--primary); }
-  #dropzone strong { color: var(--primary); }
-  #uploadStatus { margin-top: 10px; font-size: 0.85rem; color: #4a5568; }
-  /* Header form */
+  .file-zone:hover { background: #dbeafe; }
+  .file-zone strong { color: var(--primary); }
+  .file-zone label { cursor: pointer; display: block; }
+  .file-zone input[type="file"] { display: none; }
+  .file-zone .muted { margin: 4px 0 0; font-size: 0.8rem; color: #718096; }
+  .ingest-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  #ingestStatus { font-size: 0.85rem; color: #4a5568; }
+
+  /* ---- Header form ---- */
   .grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -76,32 +83,89 @@
   }
   .field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(49,130,206,0.18); }
   .hint { font-size: 0.72rem; color: var(--warning); margin-top: 3px; }
-  /* Table */
+
+  /* ---- Review table ---- */
   table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
   th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: left; vertical-align: middle; }
-  th { background: #edf2f7; color: var(--primary); font-weight: 600; }
-  td input {
-    width: 100%; border: none; background: transparent; font-size: 0.85rem; padding: 3px 4px;
+  th { background: #edf2f7; color: var(--primary); font-weight: 600; white-space: nowrap; }
+  td input[type="number"] {
+    width: 56px; border: 1px solid var(--border); background: #f7fafc;
+    font-size: 0.85rem; padding: 4px 5px; text-align: center; border-radius: 4px;
   }
-  td input:focus { outline: 1px solid var(--accent); background: #fff; border-radius: 4px; }
-  tr.needs-review { background: #fffbea; }
-  td.col-box   { width: 56px; text-align: center; }
-  td.col-qty   { width: 70px; }
-  td.col-rm    { width: 70px; text-align: center; }
-  .col-box input { text-align: center; }
+  td input[type="number"]:focus { outline: none; border-color: var(--accent); background: #fff; }
+  td.col-box   { width: 68px; text-align: center; }
+  td.col-shr   { width: 52px; text-align: center; }
+  td.col-exp   { width: 36px; text-align: center; }
+  td.col-items { width: 52px; text-align: center; }
+  td.col-lin   { width: 70px; font-family: monospace; }
+  td.col-niin  { width: 90px; font-family: monospace; }
+  td.col-serial{ font-family: monospace; }
+
+  .shr-match   { color: var(--success); font-weight: 700; font-size: 1rem; }
+  .shr-warn    { color: var(--warning); font-weight: 700; font-size: 1rem; cursor: pointer; text-decoration: underline dotted; }
+  .shr-none    { color: #a0aec0; }
+
+  /* Expander row */
+  .expander-btn {
+    background: none; border: none; font-size: 1rem; cursor: pointer;
+    color: var(--accent); padding: 2px 4px; border-radius: 4px;
+  }
+  .expander-btn:hover { background: #edf2f7; filter: none; }
+
+  /* Sub-table for items */
+  tr.items-row td { background: #f7fafc; padding: 10px 14px; }
+  tr.items-row table { font-size: 0.8rem; margin: 0; }
+  tr.items-row th  { background: #e2e8f0; font-size: 0.78rem; }
+
+  /* Mismatch detail panel */
+  tr.detail-row td { background: #fffbea; padding: 10px 14px; }
+  .detail-panel { font-size: 0.82rem; }
+  .detail-panel ul { margin: 6px 0 0; padding-left: 18px; }
+  .detail-panel li { margin-bottom: 3px; }
+  .detail-field-table { border-collapse: collapse; font-size: 0.8rem; margin-top: 8px; }
+  .detail-field-table th, .detail-field-table td {
+    border: 1px solid var(--border); padding: 4px 8px; text-align: left;
+  }
+  .detail-field-table th { background: #edf2f7; }
+  .field-ok   { color: var(--success); }
+  .field-diff { color: var(--danger);  }
+
+  /* Boxes in use bar */
+  .boxes-bar {
+    font-size: 0.82rem; color: #2d3748; background: #edf2f7;
+    border-radius: 6px; padding: 6px 12px; display: inline-block; margin-bottom: 10px;
+  }
+  .boxes-bar strong { color: var(--primary); }
+
+  /* Reconcile summary */
+  .recon-summary {
+    font-size: 0.82rem; color: #4a5568; margin-bottom: 14px;
+  }
+  .recon-summary .badge {
+    display: inline-block; font-size: 0.7rem; font-weight: 700;
+    padding: 2px 7px; border-radius: 4px; margin-left: 6px;
+  }
+  .badge-clean   { background: #c6f6d5; color: #22543d; }
+  .badge-flagged { background: #feebc8; color: #744210; }
+
   /* Buttons */
   button {
     font-size: 0.9rem; font-weight: 600; border: none; border-radius: 7px;
     padding: 9px 16px; cursor: pointer; transition: filter .15s;
   }
   button:hover { filter: brightness(0.94); }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-success { background: var(--success); color: #fff; }
-  .btn-ghost   { background: #edf2f7; color: var(--primary); }
-  .btn-danger  { background: var(--danger);  color: #fff; padding: 5px 10px; font-size: 0.78rem; }
-  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
-  .actions { display: flex; gap: 12px; flex-wrap: wrap; }
-  /* Audit panel */
+  button:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+  .btn-primary { background: var(--accent);   color: #fff; }
+  .btn-success { background: var(--success);  color: #fff; }
+  .btn-ghost   { background: #edf2f7;         color: var(--primary); }
+  .btn-danger  { background: var(--danger);   color: #fff; padding: 5px 10px; font-size: 0.78rem; }
+  .btn-sm      { padding: 5px 10px; font-size: 0.78rem; }
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+  .muted { color: #718096; font-size: 0.8rem; }
+
+  /* Audit / legacy audit panel */
   #auditPanel { display: none; }
   .audit-status {
     font-weight: 700; padding: 8px 12px; border-radius: 6px; display: inline-block; margin-bottom: 10px;
@@ -112,10 +176,11 @@
   ul.issues li { padding: 7px 10px; border-radius: 5px; margin-bottom: 6px; font-size: 0.85rem; }
   li.sev-ERROR   { background: #fff5f5; border-left: 4px solid var(--danger);  color: var(--danger); }
   li.sev-WARNING { background: #fffaf0; border-left: 4px solid var(--warning); color: #975a16; }
+  .badge-ERROR   { background: var(--danger);  color: #fff; }
+  .badge-WARNING { background: var(--warning); color: #fff; }
   .badge { display:inline-block; font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:4px; margin-right:6px; }
-  .badge-ERROR { background: var(--danger); color:#fff; }
-  .badge-WARNING { background: var(--warning); color:#fff; }
-  .muted { color:#718096; font-size:0.8rem; }
+
+  /* Legacy tab buttons */
   .tab-btn {
     background: none; border: none; border-bottom: 3px solid transparent;
     border-radius: 0; padding: 8px 18px; font-size: 0.9rem; font-weight: 600;
@@ -123,296 +188,1022 @@
   }
   .tab-btn:hover { color: var(--primary); filter: none; }
   .tab-active { color: var(--primary); border-bottom-color: var(--accent); }
+  #dropzone { border: 2px dashed var(--accent); border-radius: 10px; padding: 38px 16px;
+    text-align: center; color: #4a5568; cursor: pointer; transition: background .15s;
+    background: #f0f6ff; }
+  #dropzone.drag { background: #dbeafe; border-color: var(--primary); }
   #csvDropzone.drag { background: #dbeafe; border-color: var(--primary); }
+
+  /* Details/summary (legacy section) */
+  details { margin-top: 4px; }
+  details summary {
+    cursor: pointer; font-size: 0.88rem; color: var(--accent); padding: 6px 0; user-select: none;
+  }
+  details[open] summary { color: var(--primary); }
+  details .inner-wrap { padding-top: 10px; }
 </style>
 </head>
 <body>
 <header class="appbar">
   <h1>Master DD1750 Packing List Generator</h1>
-  <p>Drop individual 1750 PDFs &rarr; auto-parse MEIs &rarr; review &rarr; generate the master packing list.</p>
+  <p>CONNEX packing flow: drop SHR + BOM PDFs &rarr; review auto-extracted table &rarr; assign boxes &rarr; download individual 1750s or master packing list.</p>
 </header>
 
 <div class="wrap">
 
-  <!-- 1. UPLOAD (tabs: individual PDFs or SHR CSV) -->
-  <div class="card">
-    <h2>1 &middot; Upload Source</h2>
-    <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
-      <button id="tabPdf" class="tab-btn tab-active" onclick="switchTab('pdf')">Individual 1750 PDFs</button>
-      <button id="tabCsv" class="tab-btn" onclick="switchTab('csv')">SHR Extract CSV</button>
-    </div>
+<!-- ======================================================= -->
+<!-- SECTION 1: DROP ZONE — SHR + BOM INGEST                 -->
+<!-- ======================================================= -->
+<div class="card">
+  <h2>1 &middot; Upload Source Files</h2>
 
-    <!-- PDF tab -->
-    <div id="panelPdf">
-      <div id="dropzone">
-        <p><strong>Drag &amp; drop</strong> individual 1750 PDFs here, or <strong>click to browse</strong>.</p>
-        <p class="muted">Filenames are parsed for Model / LIN / Serial. Multiple files OK.</p>
-        <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px;">
+
+    <!-- SHR drop zone -->
+    <div>
+      <div style="font-size:0.8rem;font-weight:600;color:#4a5568;margin-bottom:6px;">Sub Hand Receipt (optional)</div>
+      <div class="file-zone" id="shrZone">
+        <label for="shrInput">
+          <strong>Drop SHR PDF here</strong> or click to browse
+          <div class="muted">Single .pdf — used for reconciliation / SHR consistency checks.</div>
+          <input type="file" id="shrInput" accept="application/pdf">
+        </label>
       </div>
-      <div id="uploadStatus"></div>
+      <div id="shrFileLabel" class="muted" style="min-height:1.2em;"></div>
     </div>
 
-    <!-- CSV tab -->
-    <div id="panelCsv" style="display:none;">
-      <div id="csvDropzone" style="border:2px dashed var(--accent);border-radius:10px;padding:38px 16px;text-align:center;color:#4a5568;cursor:pointer;background:#f0f6ff;">
-        <p><strong>Drag &amp; drop</strong> the SHR extract CSV here, or <strong>click to browse</strong>.</p>
-        <p class="muted">Export from the SHR Extractor tool first, then upload here.</p>
-        <input type="file" id="csvInput" accept=".csv" style="display:none;">
+    <!-- BOM drop zone -->
+    <div>
+      <div style="font-size:0.8rem;font-weight:600;color:#4a5568;margin-bottom:6px;">BOM PDFs</div>
+      <div class="file-zone" id="bomZone">
+        <label for="bomInput">
+          <strong>Drop BOM PDFs here</strong> or click to browse
+          <div class="muted">Multiple files OK — one BOM PDF per end item.</div>
+          <input type="file" id="bomInput" accept="application/pdf" multiple>
+        </label>
       </div>
-      <div id="csvStatus"></div>
+      <div id="bomFileLabel" class="muted" style="min-height:1.2em;"></div>
     </div>
+
   </div>
 
-  <!-- 2. HEADER FORM -->
-  <div class="card">
-    <h2>2 &middot; Header Information</h2>
-    <div class="grid">
-      <div class="field"><label>UIC</label><input id="h_uic" placeholder="WABCD0"></div>
-      <div class="field"><label>Battery</label><input id="h_battery" placeholder="B BTY"></div>
-      <div class="field"><label>Battalion</label><input id="h_battalion" placeholder="1-1 ADA"></div>
-      <div class="field"><label>Packed By (RANK LAST, FIRST)</label><input id="h_packed_by" placeholder="SSG SMITH, JOHN"></div>
-      <div class="field"><label>SHRH POC</label><input id="h_shrh" placeholder="CPT JONES"></div>
-      <div class="field"><label>SLOC / Section</label><input id="h_sloc" placeholder="BLDG-100 / SEC"></div>
-      <div class="field"><label>Container #</label><input id="h_container" placeholder="CONEX-01"></div>
-      <div class="field"><label>SUN #</label><input id="h_sun" placeholder="SUN-2026-001"></div>
-      <div class="field"><label>SEAL #</label><input id="h_seal" placeholder="SEAL-4455"></div>
-      <div class="field"><label>Date</label><input id="h_date" placeholder="15 JUN 2026"></div>
-      <div class="field">
-        <label>Signer Name / Title</label>
-        <input id="h_signer_name" placeholder="1LT BAKER, SAM">
-        <span class="hint">Must differ from Packed By.</span>
-      </div>
-    </div>
+  <div class="ingest-row">
+    <button class="btn-primary" id="ingestBtn" onclick="doIngest()">Ingest &rarr; Extract</button>
+    <span id="ingestStatus"></span>
   </div>
-
-  <!-- 3. REVIEW TABLE -->
-  <div class="card">
-    <h2>3 &middot; Review &amp; Edit Rows</h2>
-    <table id="rowsTable">
-      <thead>
-        <tr>
-          <th class="col-box">Box #</th>
-          <th>Model / Nomenclature</th>
-          <th>LIN</th>
-          <th>NSN</th>
-          <th>Serials (comma-separated)</th>
-          <th class="col-qty">Qty</th>
-          <th class="col-rm"></th>
-        </tr>
-      </thead>
-      <tbody id="rowsBody">
-        <!-- rows injected by JS -->
-      </tbody>
-    </table>
-    <div class="btn-row">
-      <button class="btn-ghost" id="addRowBtn">+ Add Row</button>
-    </div>
-  </div>
-
-  <!-- 4. ACTIONS -->
-  <div class="card">
-    <h2>4 &middot; Generate / Audit</h2>
-    <div class="actions">
-      <button class="btn-success" id="generateBtn">Generate Master 1750 (PDF)</button>
-      <button class="btn-primary" id="auditBtn">Run Audit</button>
-    </div>
-  </div>
-
-  <!-- 5. AUDIT RESULTS -->
-  <div class="card" id="auditPanel">
-    <h2>Audit Results</h2>
-    <div id="auditStatus"></div>
-    <ul class="issues" id="auditIssues"></ul>
-  </div>
-
 </div>
 
+<!-- ======================================================= -->
+<!-- SECTION 2: REVIEW TABLE                                 -->
+<!-- ======================================================= -->
+<div class="card" id="reviewSection" style="display:none;">
+  <h2>2 &middot; Review &amp; Assign Boxes</h2>
+
+  <!-- Boxes in use + auto-assign + condense duplicates -->
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+    <div class="boxes-bar" id="boxesBar">Boxes in use: —</div>
+    <button class="btn-ghost btn-sm" id="autoAssignBtn" onclick="autoAssign()">Auto-assign 1..N</button>
+    <button class="btn-ghost btn-sm" id="condenseDupBtn" onclick="condenseDuplicates()">Condense duplicate end items</button>
+    <span id="condenseDupStatus" class="muted" style="font-size:0.8rem;"></span>
+  </div>
+
+  <!-- Reconcile summary (shown when SHR was uploaded) -->
+  <div class="recon-summary" id="reconSummary" style="display:none;"></div>
+
+  <table id="reviewTable">
+    <thead>
+      <tr>
+        <th class="col-exp"></th>
+        <th class="col-box">Box #</th>
+        <th>File</th>
+        <th>Nomenclature</th>
+        <th>Model</th>
+        <th class="col-lin">LIN</th>
+        <th class="col-niin">NIIN</th>
+        <th class="col-serial">Serial</th>
+        <th class="col-items">Items</th>
+        <th class="col-shr">SHR</th>
+      </tr>
+    </thead>
+    <tbody id="reviewBody">
+      <!-- rows injected by JS -->
+    </tbody>
+  </table>
+</div>
+
+<!-- ======================================================= -->
+<!-- SECTION 3: HEADER FORM                                  -->
+<!-- ======================================================= -->
+<div class="card" id="headerSection" style="display:none;">
+  <h2>3 &middot; Header Information</h2>
+  <div class="grid">
+    <!-- individual 1750 fields -->
+    <div class="field">
+      <label>Packed By — RANK, LAST, FIRST</label>
+      <input id="h_packed_by" placeholder="SSG MORRIS, JOHN">
+    </div>
+    <div class="field">
+      <label>UIC</label>
+      <input id="h_uic" placeholder="WABCD0">
+    </div>
+    <div class="field">
+      <label>Battery</label>
+      <input id="h_battery" placeholder="B BTY">
+    </div>
+    <div class="field">
+      <label>Battalion</label>
+      <input id="h_battalion" placeholder="2-55 ADA">
+    </div>
+    <div class="field">
+      <label>SHRH POC</label>
+      <input id="h_shrh" placeholder="CPT JONES">
+    </div>
+    <div class="field">
+      <label>SLOC / Section</label>
+      <input id="h_sloc" placeholder="BLDG-100 / SEC">
+    </div>
+    <div class="field">
+      <label>Container #</label>
+      <input id="h_container" placeholder="CONEX-01">
+    </div>
+    <div class="field">
+      <label>SUN #</label>
+      <input id="h_sun" placeholder="SUN-2026-001">
+    </div>
+    <div class="field">
+      <label>SEAL #</label>
+      <input id="h_seal" placeholder="SEAL-4455">
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input id="h_date" placeholder="15 JUN 2026">
+    </div>
+    <div class="field" style="grid-column:1/-1;">
+      <label>Signer Name / Title</label>
+      <input id="h_signer_name" placeholder="1LT BAKER, SAM">
+      <span class="hint">Must differ from Packed By (e.g. 1LT BAKER, SAM).</span>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- SECTION 4: GENERATE                                     -->
+<!-- ======================================================= -->
+<div class="card" id="generateSection" style="display:none;">
+  <h2>4 &middot; Generate Documents</h2>
+  <div id="genReconSummary" class="recon-summary" style="margin-bottom:10px;"></div>
+  <div class="actions" style="flex-wrap:wrap;gap:12px;">
+    <button class="btn-success" id="genIndividualsBtn" onclick="generateIndividuals()">
+      Download Individual 1750s (ZIP)
+    </button>
+    <button class="btn-primary" id="genMasterBtn" onclick="generateMaster()">
+      Download Master 1750 (PDF)
+    </button>
+    <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:600;color:#4a5568;cursor:pointer;">
+      <input type="checkbox" id="condenseChk" checked style="width:15px;height:15px;cursor:pointer;">
+      Condense duplicate items (merge identical lines, sum qty)
+    </label>
+  </div>
+  <div id="genStatus" class="muted" style="margin-top:8px;"></div>
+</div>
+
+<!-- ======================================================= -->
+<!-- LEGACY TOOLS (collapsed)                                -->
+<!-- ======================================================= -->
+<details>
+  <summary>&#9656; Legacy tools (individual 1750 PDFs / SHR CSV)</summary>
+  <div class="inner-wrap">
+
+    <div class="card" style="margin-top:12px;">
+      <h2>Upload Source</h2>
+      <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);">
+        <button id="tabPdf" class="tab-btn tab-active" onclick="switchTab('pdf')">Individual 1750 PDFs</button>
+        <button id="tabCsv" class="tab-btn" onclick="switchTab('csv')">SHR Extract CSV</button>
+      </div>
+
+      <div id="panelPdf">
+        <div id="dropzone">
+          <p><strong>Drag &amp; drop</strong> individual 1750 PDFs here, or <strong>click to browse</strong>.</p>
+          <p class="muted">Filenames are parsed for Model / LIN / Serial. Multiple files OK.</p>
+          <input type="file" id="fileInput" accept="application/pdf" multiple style="display:none;">
+        </div>
+        <div id="uploadStatus"></div>
+      </div>
+
+      <div id="panelCsv" style="display:none;">
+        <div id="csvDropzone" style="border:2px dashed var(--accent);border-radius:10px;padding:38px 16px;text-align:center;color:#4a5568;cursor:pointer;background:#f0f6ff;">
+          <p><strong>Drag &amp; drop</strong> the SHR extract CSV here, or <strong>click to browse</strong>.</p>
+          <p class="muted">Export from the SHR Extractor tool first, then upload here.</p>
+          <input type="file" id="csvInput" accept=".csv" style="display:none;">
+        </div>
+        <div id="csvStatus"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Header Information (Legacy)</h2>
+      <div class="grid">
+        <div class="field"><label>UIC</label><input id="l_uic" placeholder="WABCD0"></div>
+        <div class="field"><label>Battery</label><input id="l_battery" placeholder="B BTY"></div>
+        <div class="field"><label>Battalion</label><input id="l_battalion" placeholder="1-1 ADA"></div>
+        <div class="field"><label>Packed By (RANK LAST, FIRST)</label><input id="l_packed_by" placeholder="SSG SMITH, JOHN"></div>
+        <div class="field"><label>SHRH POC</label><input id="l_shrh" placeholder="CPT JONES"></div>
+        <div class="field"><label>SLOC / Section</label><input id="l_sloc" placeholder="BLDG-100 / SEC"></div>
+        <div class="field"><label>Container #</label><input id="l_container" placeholder="CONEX-01"></div>
+        <div class="field"><label>SUN #</label><input id="l_sun" placeholder="SUN-2026-001"></div>
+        <div class="field"><label>SEAL #</label><input id="l_seal" placeholder="SEAL-4455"></div>
+        <div class="field"><label>Date</label><input id="l_date" placeholder="15 JUN 2026"></div>
+        <div class="field">
+          <label>Signer Name / Title</label>
+          <input id="l_signer_name" placeholder="1LT BAKER, SAM">
+          <span class="hint">Must differ from Packed By.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Review &amp; Edit Rows (Legacy)</h2>
+      <table id="rowsTable">
+        <thead>
+          <tr>
+            <th class="col-box">Box #</th>
+            <th>Model / Nomenclature</th>
+            <th>LIN</th>
+            <th>NSN</th>
+            <th>Serials (comma-separated)</th>
+            <th class="col-items">Qty</th>
+            <th style="width:70px;text-align:center;"></th>
+          </tr>
+        </thead>
+        <tbody id="rowsBody"></tbody>
+      </table>
+      <div class="btn-row">
+        <button class="btn-ghost" id="addRowBtn">+ Add Row</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Generate / Audit (Legacy)</h2>
+      <div class="actions">
+        <button class="btn-success" id="generateBtn">Generate Master 1750 (PDF)</button>
+        <button class="btn-primary" id="auditBtn">Run Audit</button>
+      </div>
+    </div>
+
+    <div class="card" id="auditPanel">
+      <h2>Audit Results</h2>
+      <div id="auditStatus"></div>
+      <ul class="issues" id="auditIssues"></ul>
+    </div>
+
+  </div><!-- /inner-wrap -->
+</details>
+
+</div><!-- /wrap -->
+
 <script>
-/* ------------------------------------------------------------------ *
- * Master DD1750 — front-end logic (vanilla JS, no build step).
- * ------------------------------------------------------------------ */
+/* ================================================================== *
+ * Master DD1750 — unified connex packing flow (vanilla JS, no build).
+ * ================================================================== */
 
 const $ = (id) => document.getElementById(id);
 
-/* ---- Header collection ---- */
+/* ---- Utility: escape HTML to prevent XSS in injected text ---- */
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;");
+}
+
+/* ---- State ---- */
+let STATE = {
+  job_id: null,
+  boms: [],           // array of BOM objects from /ingest
+  occupied_boxes: [], // array of box numbers currently in use
+  reconcile_data: {}, // keyed by bom_id, loaded lazily from /reconcile
+  has_shr: false,
+};
+
+/* ================================================================== *
+ * SECTION 1 — FILE INPUTS + INGEST
+ * ================================================================== */
+
+/* Show selected filenames next to their zones */
+$("shrInput").addEventListener("change", function() {
+  $("shrFileLabel").textContent = this.files.length ? this.files[0].name : "";
+});
+$("bomInput").addEventListener("change", function() {
+  const n = this.files.length;
+  $("bomFileLabel").textContent = n ? `${n} file${n===1?"":"s"} selected` : "";
+});
+
+/* Drag-over highlight for custom file-zone divs */
+["shrZone","bomZone"].forEach(zoneId => {
+  const zone = $(zoneId);
+  zone.addEventListener("dragover", e => { e.preventDefault(); zone.style.background="#dbeafe"; });
+  zone.addEventListener("dragleave", () => { zone.style.background=""; });
+  zone.addEventListener("drop", e => {
+    e.preventDefault(); zone.style.background = "";
+    // Forward dropped files to the hidden input inside this zone
+    const input = zone.querySelector("input[type=file]");
+    // DataTransfer doesn't allow setting .files directly on most browsers,
+    // but the drag-drop onto the label will trigger naturally via the input.
+    // This handler is just for visual feedback — actual files come from the input's change event.
+  });
+});
+
+/* Main INGEST handler — POST /ingest with SHR + BOM files */
+async function doIngest() {
+  const shrInput = $("shrInput");
+  const bomInput = $("bomInput");
+  const status   = $("ingestStatus");
+  const btn      = $("ingestBtn");
+
+  if (!bomInput.files.length) {
+    status.textContent = "Please select at least one BOM PDF.";
+    return;
+  }
+
+  // Build multipart form: boms (repeat) + optional shr
+  const fd = new FormData();
+  for (const f of bomInput.files) fd.append("boms", f);
+  if (shrInput.files.length) fd.append("shr", shrInput.files[0]);
+
+  btn.disabled = true;
+  status.textContent = `Extracting ${bomInput.files.length} BOM(s)…`;
+
+  try {
+    const resp = await fetch("/ingest", { method: "POST", body: fd });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      status.textContent = "Error: " + (data.error || resp.statusText);
+      btn.disabled = false;
+      return;
+    }
+
+    /* Store state */
+    STATE.job_id         = data.job_id;
+    STATE.boms           = data.boms || [];
+    STATE.occupied_boxes = data.occupied_boxes || [];
+    STATE.has_shr        = !!shrInput.files.length;
+    STATE.reconcile_data = {};
+
+    status.textContent = `Extracted ${STATE.boms.length} BOM(s). Review below.`;
+
+    /* Pre-fill header suggestions */
+    if (data.suggested_header) {
+      if (data.suggested_header.uic  && !$("h_uic").value)  $("h_uic").value  = data.suggested_header.uic;
+      if (data.suggested_header.date && !$("h_date").value) $("h_date").value = data.suggested_header.date;
+    }
+
+    /* Show reconcile summary if SHR was uploaded */
+    const rs = data.reconcile_summary;
+    if (rs && STATE.has_shr) {
+      const total = rs.total || 0, clean = rs.clean || 0, flagged = rs.flagged || 0;
+      const html = `SHR reconciliation: <strong>${total}</strong> BOMs &nbsp;`
+        + `<span class="badge badge-clean">${clean} clean</span>`
+        + `<span class="badge badge-flagged">${flagged} flagged</span>`;
+      $("reconSummary").innerHTML = html;
+      $("reconSummary").style.display = "";
+      $("genReconSummary").innerHTML = `${total} BOMs &middot; ${clean} clean &middot; ${flagged} flagged — generation is advisory, not blocked.`;
+    } else {
+      $("reconSummary").style.display = "none";
+      $("genReconSummary").textContent = `${STATE.boms.length} BOMs loaded. No SHR — reconciliation skipped.`;
+    }
+
+    renderReviewTable();
+    updateBoxesBar();
+
+    /* Reveal the downstream sections */
+    $("reviewSection").style.display  = "";
+    $("headerSection").style.display  = "";
+    $("generateSection").style.display = "";
+
+    btn.disabled = false;
+  } catch (e) {
+    status.textContent = "Ingest failed: " + e.message;
+    btn.disabled = false;
+  }
+}
+
+/* ================================================================== *
+ * SECTION 2 — REVIEW TABLE
+ * ================================================================== */
+
+/* Render the full BOM review table from STATE.boms */
+function renderReviewTable() {
+  const tbody = $("reviewBody");
+  tbody.innerHTML = "";
+
+  STATE.boms.forEach((bom, idx) => {
+    const rowId    = `bom-${bom.bom_id}`;
+    const itemsId  = `items-${bom.bom_id}`;
+    const detailId = `detail-${bom.bom_id}`;
+
+    /* --- Build SHR status cell --- */
+    let shrCell = "";
+    if (!STATE.has_shr || bom.reconcile_status == null) {
+      shrCell = `<span class="shr-none">—</span>`;
+    } else if (bom.reconcile_status === "match") {
+      shrCell = `<span class="shr-match" title="SHR match">&#10003;</span>`;
+    } else {
+      // mismatch / partial / not_in_shr — clickable warning that opens detail panel
+      shrCell = `<span class="shr-warn" title="Click for details" onclick="toggleDetail('${bom.bom_id}')">&#9888;</span>`;
+    }
+
+    /* --- Main BOM row --- */
+    const tr = document.createElement("tr");
+    tr.id = rowId;
+    tr.innerHTML = `
+      <td class="col-exp">
+        <button class="expander-btn" title="Show/hide items" onclick="toggleItems('${bom.bom_id}')">&#9655;</button>
+      </td>
+      <td class="col-box">
+        <input type="number" min="1" id="box-${bom.bom_id}"
+               value="${esc(bom.box_num != null ? bom.box_num : idx+1)}"
+               onchange="assignBox('${bom.bom_id}', this.value)">
+      </td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+          title="${esc(bom.filename)}">${esc(bom.filename)}</td>
+      <td>${esc(bom.nomenclature)}</td>
+      <td>${esc(bom.model)}</td>
+      <td class="col-lin">${esc(bom.lin)}</td>
+      <td class="col-niin">${esc(bom.end_item_niin)}</td>
+      <td class="col-serial">${esc(bom.serial_number)}</td>
+      <td class="col-items">${esc(bom.item_count)}</td>
+      <td class="col-shr">${shrCell}</td>
+    `;
+    tbody.appendChild(tr);
+
+    /* --- Items sub-table row (hidden by default) --- */
+    const itemsTr = document.createElement("tr");
+    itemsTr.id = itemsId;
+    itemsTr.className = "items-row";
+    itemsTr.style.display = "none";
+
+    const items = bom.items || [];
+    let itemsHtml = `<td colspan="10">
+      <div style="margin-bottom:6px;font-size:0.8rem;font-weight:600;color:var(--primary);">
+        Items in ${esc(bom.filename)} — assign individual box numbers to split across boxes:
+      </div>
+      <table>
+        <thead><tr>
+          <th style="width:52px;text-align:center;">Box #</th>
+          <th style="width:52px;">Line</th>
+          <th>Description</th>
+          <th style="width:90px;">NSN</th>
+          <th style="width:52px;">Qty</th>
+        </tr></thead>
+        <tbody>`;
+
+    items.forEach(item => {
+      const itemKey = `${bom.bom_id}:${item.line_no}`;
+      itemsHtml += `<tr>
+        <td style="text-align:center;">
+          <input type="number" min="1" style="width:50px;" id="ibox-${itemKey.replace(':','-')}"
+                 value="${esc(bom.box_num != null ? bom.box_num : idx+1)}"
+                 onchange="assignItemBox('${itemKey}', this.value)">
+        </td>
+        <td>${esc(item.line_no)}</td>
+        <td>${esc(item.description)}</td>
+        <td style="font-family:monospace;">${esc(item.nsn)}</td>
+        <td>${esc(item.qty)} ${esc(item.unit_of_issue)}</td>
+      </tr>`;
+    });
+
+    itemsHtml += `</tbody></table></td>`;
+    itemsTr.innerHTML = itemsHtml;
+    tbody.appendChild(itemsTr);
+
+    /* --- Mismatch detail row (hidden by default) --- */
+    const detailTr = document.createElement("tr");
+    detailTr.id = detailId;
+    detailTr.className = "detail-row";
+    detailTr.style.display = "none";
+    detailTr.innerHTML = `<td colspan="10">
+      <div class="detail-panel" id="detail-content-${bom.bom_id}">
+        <em class="muted">Loading reconciliation details…</em>
+      </div>
+    </td>`;
+    tbody.appendChild(detailTr);
+  });
+}
+
+/* Toggle items sub-table row */
+function toggleItems(bomId) {
+  const itemsTr = $(`items-${bomId}`);
+  const btn = document.querySelector(`#bom-${bomId} .expander-btn`);
+  const open = itemsTr.style.display !== "none";
+  itemsTr.style.display = open ? "none" : "";
+  if (btn) btn.innerHTML = open ? "&#9655;" : "&#9661;";
+}
+
+/* Toggle mismatch detail row, lazy-loading /reconcile if needed */
+async function toggleDetail(bomId) {
+  const detailTr = $(`detail-${bomId}`);
+  const open = detailTr.style.display !== "none";
+
+  if (open) {
+    detailTr.style.display = "none";
+    return;
+  }
+
+  detailTr.style.display = "";
+
+  /* If we already have reconcile data for this BOM, just render it */
+  if (STATE.reconcile_data[bomId]) {
+    renderDetailPanel(bomId, STATE.reconcile_data[bomId]);
+    return;
+  }
+
+  /* Otherwise fetch /reconcile for the whole job, cache it all */
+  try {
+    const resp = await fetch("/reconcile", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job_id: STATE.job_id }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      $(`detail-content-${bomId}`).textContent = "Reconcile error: " + (data.error || resp.statusText);
+      return;
+    }
+    /* Cache all BOMs from this single fetch */
+    STATE.reconcile_data = data.by_bom || {};
+    renderDetailPanel(bomId, STATE.reconcile_data[bomId]);
+  } catch (e) {
+    $(`detail-content-${bomId}`).textContent = "Reconcile fetch failed: " + e.message;
+  }
+}
+
+/* Render the mismatch detail panel content for one BOM */
+function renderDetailPanel(bomId, bomRecon) {
+  const el = $(`detail-content-${bomId}`);
+  if (!bomRecon) {
+    el.innerHTML = `<em class="muted">No reconciliation data available for this BOM.</em>`;
+    return;
+  }
+
+  /* Status badge color */
+  const statusColor = bomRecon.status === "mismatch" ? "var(--danger)"
+    : bomRecon.status === "partial" ? "var(--warning)"
+    : "#718096";
+
+  let html = `<div style="margin-bottom:8px;">
+    <strong>Status:</strong>
+    <span style="color:${statusColor};font-weight:700;">${esc(bomRecon.status || "—")}</span>`;
+  if (bomRecon.matched_lin) {
+    html += ` &nbsp;|&nbsp; <strong>Matched LIN:</strong> <code>${esc(bomRecon.matched_lin)}</code>`;
+  }
+  html += `</div>`;
+
+  /* Messages list */
+  if (bomRecon.messages && bomRecon.messages.length) {
+    html += `<ul style="margin:0 0 8px;padding-left:18px;">`;
+    bomRecon.messages.forEach(m => { html += `<li>${esc(m)}</li>`; });
+    html += `</ul>`;
+  }
+
+  /* Per-field BOM vs SHR comparison table */
+  const fields = bomRecon.fields;
+  if (fields && Object.keys(fields).length) {
+    html += `<table class="detail-field-table">
+      <thead><tr><th>Field</th><th>BOM Value</th><th>SHR Value</th><th>Status</th></tr></thead>
+      <tbody>`;
+    for (const [fieldName, fdata] of Object.entries(fields)) {
+      const ok = fdata.status === "match";
+      const cls = ok ? "field-ok" : "field-diff";
+      html += `<tr>
+        <td><strong>${esc(fieldName)}</strong></td>
+        <td>${esc(fdata.bom)}</td>
+        <td>${esc(fdata.shr)}</td>
+        <td class="${cls}">${ok ? "&#10003;" : "&#9888;"} ${esc(fdata.status)}</td>
+      </tr>`;
+    }
+    html += `</tbody></table>`;
+  }
+
+  el.innerHTML = html;
+}
+
+/* Update the "Boxes in use" display bar */
+function updateBoxesBar() {
+  const boxes = STATE.occupied_boxes;
+  const bar   = $("boxesBar");
+  if (!boxes || !boxes.length) {
+    bar.innerHTML = "Boxes in use: <strong>none</strong>";
+  } else {
+    const sorted = [...boxes].sort((a,b) => a-b);
+    bar.innerHTML = `Boxes in use: <strong>${sorted.join(", ")}</strong>`;
+  }
+}
+
+/* Assign a whole BOM to a box number — POST /assign */
+async function assignBox(bomId, rawVal) {
+  const boxNum = parseInt(rawVal, 10);
+  if (isNaN(boxNum) || boxNum < 1) return;
+
+  try {
+    const resp = await fetch("/assign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job_id: STATE.job_id, moves: [{ bom_id: bomId, box_num: boxNum }] }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      console.error("Assign error:", data.error || resp.statusText);
+      return;
+    }
+    STATE.occupied_boxes = data.occupied_boxes || STATE.occupied_boxes;
+
+    /* Also update box_by_bom in local state */
+    if (data.box_by_bom && data.box_by_bom[bomId] != null) {
+      const bom = STATE.boms.find(b => b.bom_id === bomId);
+      if (bom) bom.box_num = data.box_by_bom[bomId];
+    }
+
+    updateBoxesBar();
+  } catch (e) {
+    console.error("assignBox fetch failed:", e.message);
+  }
+}
+
+/* Assign a single item to a box — POST /assign with item_key */
+async function assignItemBox(itemKey, rawVal) {
+  const boxNum = parseInt(rawVal, 10);
+  if (isNaN(boxNum) || boxNum < 1) return;
+
+  try {
+    const resp = await fetch("/assign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job_id: STATE.job_id, moves: [{ item_key: itemKey, box_num: boxNum }] }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      console.error("Item assign error:", data.error || resp.statusText);
+      return;
+    }
+    STATE.occupied_boxes = data.occupied_boxes || STATE.occupied_boxes;
+    updateBoxesBar();
+  } catch (e) {
+    console.error("assignItemBox fetch failed:", e.message);
+  }
+}
+
+/* Auto-assign 1..N — sets each BOM row to its index+1 and pushes all via one /assign call */
+async function autoAssign() {
+  if (!STATE.boms.length) return;
+
+  /* Build moves array: one entry per BOM */
+  const moves = STATE.boms.map((bom, idx) => ({ bom_id: bom.bom_id, box_num: idx + 1 }));
+
+  /* Update inputs in the DOM immediately for responsiveness */
+  moves.forEach(m => {
+    const inp = $(`box-${m.bom_id}`);
+    if (inp) inp.value = m.box_num;
+  });
+
+  try {
+    const resp = await fetch("/assign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job_id: STATE.job_id, moves }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      alert("Auto-assign failed: " + (data.error || resp.statusText));
+      return;
+    }
+    STATE.occupied_boxes = data.occupied_boxes || STATE.occupied_boxes;
+
+    /* Sync local bom box_num from response */
+    if (data.box_by_bom) {
+      STATE.boms.forEach(b => {
+        if (data.box_by_bom[b.bom_id] != null) b.box_num = data.box_by_bom[b.bom_id];
+      });
+    }
+
+    updateBoxesBar();
+  } catch (e) {
+    alert("Auto-assign fetch failed: " + e.message);
+  }
+}
+
+/* Condense duplicate end items — group by (LIN|MODEL), collapse to shared min box number.
+   Sends one POST /assign with all changed rows, then refreshes the boxes-in-use bar. */
+async function condenseDuplicates() {
+  if (!STATE.boms.length) return;
+
+  const statusEl = $("condenseDupStatus");
+  statusEl.textContent = "Working…";
+
+  /* Group bom_ids by key = LIN|MODEL (uppercased, trimmed) */
+  const groups = {}; // key -> array of { bom_id, currentBox }
+  STATE.boms.forEach(bom => {
+    const lin   = (bom.lin   || "").toString().trim().toUpperCase();
+    const model = (bom.model || "").toString().trim().toUpperCase();
+    const key   = lin + "|" + model;
+    if (!groups[key]) groups[key] = [];
+    /* Read the current box from the DOM input (user may have changed it) */
+    const inp    = $("box-" + bom.bom_id);
+    const boxNum = inp ? parseInt(inp.value, 10) : bom.box_num;
+    groups[key].push({ bom_id: bom.bom_id, boxNum: isNaN(boxNum) ? 1 : boxNum });
+  });
+
+  /* Find groups with 2+ members — compute the minimum box number for each */
+  const moves = [];
+  let dupGroupCount = 0;
+  for (const [key, members] of Object.entries(groups)) {
+    if (members.length < 2) continue;
+    dupGroupCount++;
+    const minBox = Math.min(...members.map(m => m.boxNum));
+    members.forEach(m => {
+      if (m.boxNum !== minBox) {
+        moves.push({ bom_id: m.bom_id, box_num: minBox });
+        /* Update DOM immediately for responsiveness */
+        const inp = $("box-" + m.bom_id);
+        if (inp) inp.value = minBox;
+      }
+    });
+  }
+
+  if (dupGroupCount === 0) {
+    statusEl.textContent = "No duplicates found.";
+    return;
+  }
+
+  if (moves.length === 0) {
+    statusEl.textContent = `${dupGroupCount} duplicate group(s) already share the same box — nothing to move.`;
+    return;
+  }
+
+  /* Push all changes in one /assign call */
+  try {
+    const resp = await fetch("/assign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job_id: STATE.job_id, moves }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      statusEl.textContent = "Error: " + (data.error || resp.statusText);
+      return;
+    }
+    STATE.occupied_boxes = data.occupied_boxes || STATE.occupied_boxes;
+
+    /* Sync local bom box_num from response */
+    if (data.box_by_bom) {
+      STATE.boms.forEach(b => {
+        if (data.box_by_bom[b.bom_id] != null) b.box_num = data.box_by_bom[b.bom_id];
+      });
+    }
+
+    updateBoxesBar();
+    statusEl.textContent = `Condensed ${dupGroupCount} duplicate group(s) into shared boxes.`;
+  } catch (e) {
+    statusEl.textContent = "Condense failed: " + e.message;
+  }
+}
+
+/* ================================================================== *
+ * SECTION 3/4 — HEADER + GENERATE
+ * ================================================================== */
+
+/* Collect header object from form inputs. */
 function collectHeader() {
+  const packed_by = $("h_packed_by").value.trim().toUpperCase();
+
   return {
-    uic:         $("h_uic").value.trim(),
-    battery:     $("h_battery").value.trim(),
-    battalion:   $("h_battalion").value.trim(),
-    packed_by:   $("h_packed_by").value.trim(),
-    shrh:        $("h_shrh").value.trim(),
-    sloc:        $("h_sloc").value.trim(),
-    container:   $("h_container").value.trim(),
-    sun:         $("h_sun").value.trim(),
-    seal:        $("h_seal").value.trim(),
-    date:        $("h_date").value.trim(),
-    signer_name: $("h_signer_name").value.trim(),
+    packed_by,
+    uic:         $("h_uic").value.trim().toUpperCase(),
+    battery:     $("h_battery").value.trim().toUpperCase(),
+    battalion:   $("h_battalion").value.trim().toUpperCase(),
+    shrh:        $("h_shrh").value.trim().toUpperCase(),
+    sloc:        $("h_sloc").value.trim().toUpperCase(),
+    container:   $("h_container").value.trim().toUpperCase(),
+    sun:         $("h_sun").value.trim().toUpperCase(),
+    seal:        $("h_seal").value.trim().toUpperCase(),
+    date:        $("h_date").value.trim().toUpperCase(),
+    signer_name: $("h_signer_name").value.trim().toUpperCase(),
   };
 }
 
-/* ---- Row building ---- */
-function makeRow(data) {
+/* Shared binary download helper: fetch → blob → object URL → auto-click */
+async function downloadBinary(url, payload, filename, statusEl) {
+  statusEl.textContent = "Generating…";
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      let msg = resp.statusText;
+      try { msg = (await resp.json()).error || msg; } catch (_) {}
+      statusEl.textContent = "Error: " + msg;
+      return;
+    }
+
+    const blob = await resp.blob();
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objUrl);
+
+    statusEl.textContent = `Downloaded: ${filename}`;
+  } catch (e) {
+    statusEl.textContent = "Download error: " + e.message;
+  }
+}
+
+/* Download individual 1750s ZIP — POST /generate-individuals
+   Includes condense flag from #condenseChk checkbox. */
+async function generateIndividuals() {
+  if (!STATE.job_id) { alert("No job loaded. Run Ingest first."); return; }
+  const header   = collectHeader();
+  const condense = $("condenseChk").checked; // merge identical lines and sum qty when true
+  const status   = $("genStatus");
+  $("genIndividualsBtn").disabled = true;
+  await downloadBinary(
+    "/generate-individuals",
+    { job_id: STATE.job_id, header, condense },
+    "Individual_1750s.zip",
+    status
+  );
+  $("genIndividualsBtn").disabled = false;
+}
+
+/* Download master 1750 PDF — POST /generate-master
+   Includes condense flag from #condenseChk checkbox. */
+async function generateMaster() {
+  if (!STATE.job_id) { alert("No job loaded. Run Ingest first."); return; }
+  const header   = collectHeader();
+  const condense = $("condenseChk").checked; // merge identical lines and sum qty when true
+  const status   = $("genStatus");
+  $("genMasterBtn").disabled = true;
+  await downloadBinary(
+    "/generate-master",
+    { job_id: STATE.job_id, header, condense },
+    "Master_DD1750.pdf",
+    status
+  );
+  $("genMasterBtn").disabled = false;
+}
+
+/* ================================================================== *
+ * LEGACY — unchanged helpers from original tool
+ * ================================================================== */
+
+function collectLegacyHeader() {
+  return {
+    uic:         $("l_uic").value.trim(),
+    battery:     $("l_battery").value.trim(),
+    battalion:   $("l_battalion").value.trim(),
+    packed_by:   $("l_packed_by").value.trim(),
+    shrh:        $("l_shrh").value.trim(),
+    sloc:        $("l_sloc").value.trim(),
+    container:   $("l_container").value.trim(),
+    sun:         $("l_sun").value.trim(),
+    seal:        $("l_seal").value.trim(),
+    date:        $("l_date").value.trim(),
+    signer_name: $("l_signer_name").value.trim(),
+  };
+}
+
+function makeLegacyRow(data) {
   data = data || {};
   const tr = document.createElement("tr");
   if (data.needs_review) tr.classList.add("needs-review");
-
   const serials = Array.isArray(data.serials) ? data.serials.join(", ") : (data.serials || "");
-
   tr.innerHTML = `
     <td class="col-box"><input class="r-box" value="${data.box_num || ""}"></td>
-    <td><input class="r-model" value="${escapeHtml(data.model || "")}"></td>
-    <td><input class="r-lin" value="${escapeHtml(data.lin || "")}"></td>
-    <td><input class="r-nsn" value="${escapeHtml(data.nsn || "")}"></td>
-    <td><input class="r-serials" value="${escapeHtml(serials)}"></td>
-    <td class="col-qty"><input class="r-qty" value="${data.qty != null ? data.qty : ""}"></td>
-    <td class="col-rm"><button class="btn-danger r-remove">Remove</button></td>
+    <td><input class="r-model" value="${esc(data.model || "")}"></td>
+    <td><input class="r-lin" value="${esc(data.lin || "")}"></td>
+    <td><input class="r-nsn" value="${esc(data.nsn || "")}"></td>
+    <td><input class="r-serials" value="${esc(serials)}"></td>
+    <td class="col-items"><input class="r-qty" value="${data.qty != null ? data.qty : ""}"></td>
+    <td style="width:70px;text-align:center;"><button class="btn-danger r-remove">Remove</button></td>
   `;
   tr.querySelector(".r-remove").addEventListener("click", () => {
-    tr.remove();
-    resequence();
+    tr.remove(); legacyResequence();
   });
   return tr;
 }
 
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+function legacyResequence() {
+  document.querySelectorAll("#rowsBody .r-box")
+    .forEach((inp, i) => { inp.value = i + 1; });
 }
 
-/* Renumber Box # column 1..N in DOM order */
-function resequence() {
-  const boxes = document.querySelectorAll("#rowsBody .r-box");
-  boxes.forEach((inp, i) => { inp.value = i + 1; });
-}
-
-function renderRows(rows) {
+function renderLegacyRows(rows) {
   const body = $("rowsBody");
   body.innerHTML = "";
-  rows.forEach((r) => body.appendChild(makeRow(r)));
-  resequence();
+  rows.forEach(r => body.appendChild(makeLegacyRow(r)));
+  legacyResequence();
 }
 
-/* ---- Row collection ---- */
-function collectRows() {
-  const trs = document.querySelectorAll("#rowsBody tr");
+function collectLegacyRows() {
   const rows = [];
-  trs.forEach((tr, i) => {
+  document.querySelectorAll("#rowsBody tr").forEach((tr, i) => {
     const serialsRaw = tr.querySelector(".r-serials").value;
-    const serials = serialsRaw.split(",").map((s) => s.trim()).filter((s) => s.length);
+    const serials = serialsRaw.split(",").map(s => s.trim()).filter(s => s.length);
     const qtyVal = parseInt(tr.querySelector(".r-qty").value, 10);
     rows.push({
       box_num: i + 1,
       model:   tr.querySelector(".r-model").value.trim(),
       lin:     tr.querySelector(".r-lin").value.trim(),
       nsn:     tr.querySelector(".r-nsn").value.trim(),
-      serials: serials,
-      qty:     isNaN(qtyVal) ? (serials.length || 1) : qtyVal,
+      serials,
+      qty: isNaN(qtyVal) ? (serials.length || 1) : qtyVal,
     });
   });
   return rows;
 }
 
-/* ---- Upload ---- */
-async function uploadFiles(fileList) {
+async function legacyUploadFiles(fileList) {
   if (!fileList || !fileList.length) return;
   const fd = new FormData();
   for (const f of fileList) fd.append("files", f);
-
   $("uploadStatus").textContent = `Uploading ${fileList.length} file(s)…`;
   try {
     const resp = await fetch("/upload", { method: "POST", body: fd });
     const data = await resp.json();
-    if (!resp.ok) {
-      $("uploadStatus").textContent = "Error: " + (data.error || resp.statusText);
-      return;
-    }
-    renderRows(data.rows);
-    const flagged = data.rows.filter((r) => r.needs_review).length;
-    $("uploadStatus").textContent =
-      `Parsed ${data.file_count} file(s) → ${data.rows.length} row(s)` +
+    if (!resp.ok) { $("uploadStatus").textContent = "Error: " + (data.error || resp.statusText); return; }
+    renderLegacyRows(data.rows);
+    const flagged = data.rows.filter(r => r.needs_review).length;
+    $("uploadStatus").textContent = `Parsed ${data.file_count} file(s) → ${data.rows.length} row(s)` +
       (flagged ? `, ${flagged} need review (highlighted).` : ".");
   } catch (e) {
     $("uploadStatus").textContent = "Upload failed: " + e.message;
   }
 }
 
-/* ---- Generate ---- */
-async function generatePDF() {
-  resequence();
-  const rows = collectRows();
-  if (!rows.length) { alert("No rows to generate. Upload files or add a row first."); return; }
-  const payload = { rows, header: collectHeader() };
-
+async function legacyGeneratePDF() {
+  legacyResequence();
+  const rows = collectLegacyRows();
+  if (!rows.length) { alert("No rows to generate."); return; }
+  const payload = { rows, header: collectLegacyHeader() };
   try {
     const resp = await fetch("/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
     });
     if (!resp.ok) {
       let msg = resp.statusText;
-      try { msg = (await resp.json()).error || msg; } catch (e) {}
+      try { msg = (await resp.json()).error || msg; } catch (_) {}
       alert("Generate failed: " + msg);
       return;
     }
     const blob = await resp.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = "Master_DD1750.pdf";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    a.href = url; a.download = "Master_DD1750.pdf";
+    document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   } catch (e) {
     alert("Generate error: " + e.message);
   }
 }
 
-/* ---- Audit ---- */
-async function runAudit() {
-  resequence();
-  const payload = { rows: collectRows(), header: collectHeader() };
+async function legacyRunAudit() {
+  legacyResequence();
+  const payload = { rows: collectLegacyRows(), header: collectLegacyHeader() };
   try {
     const resp = await fetch("/audit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
     });
     const data = await resp.json();
-    renderAudit(data);
+    legacyRenderAudit(data);
   } catch (e) {
     alert("Audit error: " + e.message);
   }
 }
 
-function renderAudit(data) {
+function legacyRenderAudit(data) {
   $("auditPanel").style.display = "block";
   const status = $("auditStatus");
-  if (data.passed) {
-    status.innerHTML = `<span class="audit-status audit-pass">PASSED</span> ` +
-      `<span class="muted">${data.box_count} box(es) checked.</span>`;
-  } else {
-    status.innerHTML = `<span class="audit-status audit-fail">FAILED</span> ` +
-      `<span class="muted">${data.box_count} box(es) checked.</span>`;
-  }
+  status.innerHTML = data.passed
+    ? `<span class="audit-status audit-pass">PASSED</span> <span class="muted">${data.box_count} box(es).</span>`
+    : `<span class="audit-status audit-fail">FAILED</span> <span class="muted">${data.box_count} box(es).</span>`;
   const ul = $("auditIssues");
   ul.innerHTML = "";
   if (!data.issues || !data.issues.length) {
-    ul.innerHTML = `<li class="muted">No issues found.</li>`;
-    return;
+    ul.innerHTML = `<li class="muted">No issues found.</li>`; return;
   }
-  data.issues.forEach((iss) => {
+  data.issues.forEach(iss => {
     const li = document.createElement("li");
     li.className = "sev-" + iss.severity;
-    li.innerHTML = `<span class="badge badge-${iss.severity}">${iss.severity}</span>${escapeHtml(iss.message)}`;
+    li.innerHTML = `<span class="badge badge-${iss.severity}">${iss.severity}</span>${esc(iss.message)}`;
     ul.appendChild(li);
   });
 }
 
-/* ---- Tab switching ---- */
 function switchTab(tab) {
   $("panelPdf").style.display = tab === "pdf" ? "" : "none";
   $("panelCsv").style.display = tab === "csv" ? "" : "none";
@@ -420,8 +1211,7 @@ function switchTab(tab) {
   $("tabCsv").classList.toggle("tab-active", tab === "csv");
 }
 
-/* ---- CSV upload ---- */
-async function uploadCsv(fileList) {
+async function legacyUploadCsv(fileList) {
   if (!fileList || !fileList.length) return;
   const f = fileList[0];
   $("csvStatus").textContent = `Uploading ${f.name}…`;
@@ -430,52 +1220,56 @@ async function uploadCsv(fileList) {
   try {
     const resp = await fetch("/upload-csv", { method: "POST", body: fd });
     const data = await resp.json();
-    if (!resp.ok) {
-      $("csvStatus").textContent = "Error: " + (data.error || resp.statusText);
-      return;
-    }
-    renderRows(data.rows);
-    $("csvStatus").textContent =
-      `Parsed ${data.record_count} record(s) → ${data.rows.length} unique item(s) loaded into the table.`;
+    if (!resp.ok) { $("csvStatus").textContent = "Error: " + (data.error || resp.statusText); return; }
+    renderLegacyRows(data.rows);
+    $("csvStatus").textContent = `Parsed ${data.record_count} record(s) → ${data.rows.length} unique item(s) loaded.`;
   } catch (e) {
     $("csvStatus").textContent = "Upload failed: " + e.message;
   }
 }
 
-/* ---- Wire up events ---- */
+/* ================================================================== *
+ * INIT — wire up all events on DOMContentLoaded
+ * ================================================================== */
 (function init() {
+  /* Legacy drop zone / file input wiring */
   const dz = $("dropzone");
-  const input = $("fileInput");
+  const fi = $("fileInput");
+  if (dz && fi) {
+    dz.addEventListener("click", () => fi.click());
+    fi.addEventListener("change", () => legacyUploadFiles(fi.files));
+    dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("drag"); });
+    dz.addEventListener("dragleave", () => dz.classList.remove("drag"));
+    dz.addEventListener("drop", e => {
+      e.preventDefault(); dz.classList.remove("drag"); legacyUploadFiles(e.dataTransfer.files);
+    });
+  }
 
-  dz.addEventListener("click", () => input.click());
-  input.addEventListener("change", () => uploadFiles(input.files));
-
-  dz.addEventListener("dragover", (e) => { e.preventDefault(); dz.classList.add("drag"); });
-  dz.addEventListener("dragleave", () => dz.classList.remove("drag"));
-  dz.addEventListener("drop", (e) => {
-    e.preventDefault();
-    dz.classList.remove("drag");
-    uploadFiles(e.dataTransfer.files);
-  });
-
-  const csvDz = $("csvDropzone");
+  const csvDz    = $("csvDropzone");
   const csvInput = $("csvInput");
-  csvDz.addEventListener("click", () => csvInput.click());
-  csvInput.addEventListener("change", () => uploadCsv(csvInput.files));
-  csvDz.addEventListener("dragover", (e) => { e.preventDefault(); csvDz.classList.add("drag"); });
-  csvDz.addEventListener("dragleave", () => csvDz.classList.remove("drag"));
-  csvDz.addEventListener("drop", (e) => {
-    e.preventDefault();
-    csvDz.classList.remove("drag");
-    uploadCsv(e.dataTransfer.files);
-  });
+  if (csvDz && csvInput) {
+    csvDz.addEventListener("click", () => csvInput.click());
+    csvInput.addEventListener("change", () => legacyUploadCsv(csvInput.files));
+    csvDz.addEventListener("dragover", e => { e.preventDefault(); csvDz.classList.add("drag"); });
+    csvDz.addEventListener("dragleave", () => csvDz.classList.remove("drag"));
+    csvDz.addEventListener("drop", e => {
+      e.preventDefault(); csvDz.classList.remove("drag"); legacyUploadCsv(e.dataTransfer.files);
+    });
+  }
 
-  $("addRowBtn").addEventListener("click", () => {
-    $("rowsBody").appendChild(makeRow({ qty: 1 }));
-    resequence();
-  });
-  $("generateBtn").addEventListener("click", generatePDF);
-  $("auditBtn").addEventListener("click", runAudit);
+  const addRowBtn = $("addRowBtn");
+  if (addRowBtn) {
+    addRowBtn.addEventListener("click", () => {
+      $("rowsBody").appendChild(makeLegacyRow({ qty: 1 }));
+      legacyResequence();
+    });
+  }
+
+  const generateBtn = $("generateBtn");
+  if (generateBtn) generateBtn.addEventListener("click", legacyGeneratePDF);
+
+  const auditBtn = $("auditBtn");
+  if (auditBtn) auditBtn.addEventListener("click", legacyRunAudit);
 })();
 </script>
 </body>
