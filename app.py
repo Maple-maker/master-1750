@@ -505,37 +505,58 @@ def generate_individuals():
     header = data.get("header", {})
     condense = bool(data.get("condense", False))
 
-    boxes = packing.occupied_boxes(box_map)
-    if not boxes:
+    if not packing.occupied_boxes(box_map):
         return jsonify({"error": "No occupied boxes — assign items first."}), 400
 
-    # Sequential numbering for individual 1750s: 1..N where N = physical boxes.
-    # This is independent of the master's condensed numbering (1..M unique models).
-    # Master is a summary; individuals are per-box. They don't share a sequence.
-    box_seq = {b: i for i, b in enumerate(boxes, start=1)}
-    total_boxes = len(boxes)
+    # Build the exact same condensed rows the master PDF uses so that
+    # individual 1750 count and box numbers are always identical to the master.
+    # Each condensed row → one individual 1750 PDF; items from all physical
+    # boxes that share that row are combined and condensed into one list.
+    raw_master_rows = packing.boxes_to_master_rows(boms, box_map)
+    condensed_rows  = master_core.condense_master_rows(raw_master_rows)
+    if not condensed_rows:
+        return jsonify({"error": "No rows to render — assign items to boxes first."}), 400
+
+    # Map condensed row (by model+lin key) → physical box numbers that feed it.
+    def _mk(row):
+        return (
+            master_core.normalize_model(str(row.get("model", "") or "")),
+            str(row.get("lin", "") or "").strip().upper(),
+        )
+
+    from collections import defaultdict
+    seq_to_phys: dict = defaultdict(list)
+    condensed_key_to_seq = {_mk(r): r["box_num"] for r in condensed_rows}
+    for raw in raw_master_rows:
+        seq = condensed_key_to_seq.get(_mk(raw))
+        if seq is not None:
+            seq_to_phys[seq].append(raw["box_num"])
+
+    total_boxes = len(condensed_rows)
     zip_buffer = io.BytesIO()
 
     with tempfile.TemporaryDirectory() as tmpdir:
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-            for box_num in boxes:
-                seq_num = box_seq[box_num]
-                raw_items = packing.items_for_box(boms, box_map, box_num)
+            for c_row in condensed_rows:
+                seq_num   = c_row["box_num"]
+                phys_boxes = seq_to_phys.get(seq_num, [])
+
+                # Collect items from every physical box that belongs to this row.
+                raw_items: list = []
+                for pb in phys_boxes:
+                    raw_items.extend(packing.items_for_box(boms, box_map, pb))
+
                 if not raw_items:
                     continue
 
-                # Optionally collapse identical lines (e.g. 3x KIV-7M -> qty 3).
-                if condense:
+                # Condense when explicitly requested OR when multiple physical
+                # boxes are merged into one condensed row.
+                if condense or len(phys_boxes) > 1:
                     raw_items = packing.condense_items(raw_items)
 
-                # Column (a) "BOX NO." uses the sequential number so it always
-                # matches the master 1750 (which is also re-sequenced 1..N).
                 bom_items = []
                 for it in raw_items:
                     nsn_str = it.get("nsn", "") or ""
-                    # When condense is on, source_serials carries the end-item SNs
-                    # that contributed this component line.  Append them so the 1750
-                    # shows exactly which end items each component came from.
                     source_serials = it.get("source_serials", [])
                     if source_serials:
                         sn_part = "SN: " + ", ".join(source_serials)
@@ -548,8 +569,8 @@ def generate_individuals():
                         unit_of_issue=it.get("unit_of_issue", "EA"),
                     ))
 
-                # Determine distinct source BOMs for the end_item field.
-                seen_bom_ids = []
+                # Determine distinct source BOMs for the END ITEM header field.
+                seen_bom_ids: list = []
                 for it in raw_items:
                     if it["bom_id"] not in seen_bom_ids:
                         seen_bom_ids.append(it["bom_id"])
@@ -563,16 +584,18 @@ def generate_individuals():
                         sb.get("serial_number", ""),
                     )
                 else:
-                    # Multiple BOMs share this box.
                     noms = [b.get("nomenclature") or b.get("model", "") for b in source_boms]
                     distinct_noms = list(dict.fromkeys(n for n in noms if n))
-                    end_item_str = f"BOX {box_num} CONTENTS:\n" + "; ".join(distinct_noms)
+                    serials_part = ", ".join(
+                        b.get("serial_number", "") for b in source_boms
+                        if b.get("serial_number", "")
+                    )
+                    end_item_str = (
+                        f"{distinct_noms[0] if distinct_noms else 'BOX'} "
+                        f"({len(source_boms)}x)\nSN: {serials_part}" if serials_part
+                        else "; ".join(distinct_noms)
+                    )
 
-                # Use the SAME header layout as the master 1750 so the PACKED BY
-                # block and the signer (TYPED NAME) box render at identical x/y
-                # positions. build_master_header(header, []) fills packed_by /
-                # date / signer from the shared header form; we then override the
-                # END ITEM cell with this box's contents and set NO. BOXES.
                 hdr = master_core.build_master_header(header, [])
                 hdr.end_item = end_item_str
                 hdr.num_boxes = str(total_boxes)
@@ -584,11 +607,9 @@ def generate_individuals():
                     TEMPLATE_PDF,
                     out_path,
                     header=hdr,
-                    # Master header layout: packed-by block + signature box.
                     draw_master_header_fn=render_core.draw_master_header,
                 )
 
-                # Safe filename: use nomenclature of first source BOM.
                 first_nom = (source_boms[0].get("nomenclature")
                              or source_boms[0].get("model", "box")) if source_boms else "box"
                 safe_nom = re.sub(r'[^\w\-]', '_', first_nom)[:40]
