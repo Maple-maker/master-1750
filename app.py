@@ -509,33 +509,17 @@ def generate_individuals():
     if not boxes:
         return jsonify({"error": "No occupied boxes — assign items first."}), 400
 
-    # Build the same condensed master rows the master PDF uses, so individual
-    # 1750 box numbers are guaranteed to match the master 1..N numbering.
-    # physical_to_seq maps each raw box_num → the condensed master row number.
-    # Example: KIV-7M in physical boxes 1,2,3 all condense to master row 1,
-    # so their individual 1750s all label themselves "Box 1".
-    raw_master_rows = packing.boxes_to_master_rows(boms, box_map)
-    condensed_rows  = master_core.condense_master_rows(raw_master_rows)
-
-    def _mk(row):
-        return (
-            master_core.normalize_model(str(row.get("model", "") or "")),
-            str(row.get("lin", "") or "").strip().upper(),
-        )
-
-    condensed_key_to_seq = {_mk(r): r["box_num"] for r in condensed_rows}
-    physical_to_seq = {
-        raw["box_num"]: condensed_key_to_seq.get(_mk(raw), raw["box_num"])
-        for raw in raw_master_rows
-    }
-
-    total_boxes = len(condensed_rows)
+    # Sequential numbering for individual 1750s: 1..N where N = physical boxes.
+    # This is independent of the master's condensed numbering (1..M unique models).
+    # Master is a summary; individuals are per-box. They don't share a sequence.
+    box_seq = {b: i for i, b in enumerate(boxes, start=1)}
+    total_boxes = len(boxes)
     zip_buffer = io.BytesIO()
 
     with tempfile.TemporaryDirectory() as tmpdir:
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
             for box_num in boxes:
-                seq_num = physical_to_seq.get(box_num, box_num)
+                seq_num = box_seq[box_num]
                 raw_items = packing.items_for_box(boms, box_map, box_num)
                 if not raw_items:
                     continue
