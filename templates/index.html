@@ -119,6 +119,15 @@
 
   /* Mismatch detail panel */
   tr.detail-row td { background: #fffbea; padding: 10px 14px; }
+
+  /* Zero-on-hand end items: flagged for review, excludable before generating */
+  tr.zoh-row td { background: #fffaf0; }
+  tr.row-excluded td { opacity: 0.45; text-decoration: line-through; }
+  .badge-zoh { background: #feebc8; color: #744210; }
+  .btn-xs { display:inline-block; font-size: 0.66rem; padding: 2px 6px; margin-top: 4px;
+            cursor: pointer; border: 1px solid #cbd5e0; border-radius: 4px;
+            background: #edf2f7; color: var(--primary); }
+  .btn-xs:hover { background: #e2e8f0; }
   .detail-panel { font-size: 0.82rem; }
   .detail-panel ul { margin: 6px 0 0; padding-left: 18px; }
   .detail-panel li { margin-bottom: 3px; }
@@ -613,8 +622,19 @@ function renderReviewTable() {
     }
 
     /* --- Main BOM row --- */
+    const zoh      = !!bom.zero_on_hand;
+    const excluded = !!bom._excluded;
     const tr = document.createElement("tr");
     tr.id = rowId;
+    if (zoh)      tr.classList.add("zoh-row");
+    if (excluded) tr.classList.add("row-excluded");
+
+    const zohBadge = zoh
+      ? `<span class="badge badge-zoh" title="No on-hand components — verify this box is physically present">ZERO ON-HAND</span>`
+      : "";
+    const exclBtn = `<button class="btn-xs" title="Keep or drop this box before generating"
+        onclick="toggleExclude('${bom.bom_id}')">${excluded ? "Restore" : "Exclude"}</button>`;
+
     tr.innerHTML = `
       <td class="col-exp">
         <button class="expander-btn" title="Show/hide items" onclick="toggleItems('${bom.bom_id}')">&#9655;</button>
@@ -622,11 +642,13 @@ function renderReviewTable() {
       <td class="col-box">
         <input type="number" min="1" id="box-${bom.bom_id}"
                value="${esc(bom.box_num != null ? bom.box_num : idx+1)}"
-               onchange="assignBox('${bom.bom_id}', this.value)">
+               ${excluded ? "disabled" : ""}
+               onchange="assignBox('${bom.bom_id}', this.value)"><br>
+        ${exclBtn}
       </td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
           title="${esc(bom.filename)}">${esc(bom.filename)}</td>
-      <td>${esc(bom.nomenclature)}</td>
+      <td>${zohBadge}${esc(bom.nomenclature)}</td>
       <td>${esc(bom.model)}</td>
       <td class="col-lin">${esc(bom.lin)}</td>
       <td class="col-niin">${esc(bom.end_item_niin)}</td>
@@ -849,6 +871,44 @@ async function assignItemBox(itemKey, rawVal) {
     updateBoxesBar();
   } catch (e) {
     console.error("assignItemBox fetch failed:", e.message);
+  }
+}
+
+/* Exclude a box from the packing list, or restore it — POST /assign.
+   Used to drop a zero-on-hand box that isn't physically present (or any box
+   the user decides not to ship) before generating the master / individuals. */
+async function toggleExclude(bomId) {
+  const bom = STATE.boms.find(b => b.bom_id === bomId);
+  if (!bom) return;
+  const restoring = !!bom._excluded;
+
+  let move;
+  if (restoring) {
+    const idx    = STATE.boms.indexOf(bom);
+    const boxNum = bom.box_num != null ? bom.box_num : idx + 1;
+    move = { bom_id: bomId, box_num: boxNum };
+  } else {
+    move = { bom_id: bomId, exclude: true };
+  }
+
+  try {
+    const resp = await fetch("/assign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job_id: STATE.job_id, moves: [move] }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      alert("Exclude failed: " + (data.error || resp.statusText));
+      return;
+    }
+    bom._excluded = !restoring;
+    STATE.occupied_boxes = data.occupied_boxes || STATE.occupied_boxes;
+    if (data.box_by_bom && data.box_by_bom[bomId] != null) bom.box_num = data.box_by_bom[bomId];
+    renderReviewTable();
+    updateBoxesBar();
+  } catch (e) {
+    alert("Exclude fetch failed: " + e.message);
   }
 }
 

@@ -373,6 +373,7 @@ def ingest():
             "serial_number":  bom.get("serial_number", ""),
             "item_count":     bom.get("item_count", 0),
             "box_num":        rep_box,
+            "zero_on_hand":   bom.get("zero_on_hand", False),
             "reconcile_status": rec_entry.get("status") if rec_entry else None,
             "items":          bom.get("items", []),  # full component list for UI drill-in
             "warnings":       bom.get("warnings", []),
@@ -430,6 +431,18 @@ def assign():
     box_map = job["box_map"]
 
     for move in data.get("moves", []):
+        # Exclude move: drop every key for this BOM so it leaves the packing
+        # list entirely (used to remove a zero-on-hand box that isn't present).
+        if move.get("exclude"):
+            bom_id = move.get("bom_id")
+            bom = next((b for b in boms if b["bom_id"] == bom_id), None)
+            if bom is None:
+                continue
+            box_map = dict(box_map)
+            for item in bom.get("items", []):
+                box_map.pop(packing.item_key(bom_id, item["line_no"]), None)
+            continue
+
         target_box = int(move["box_num"])
 
         if "item_key" in move:

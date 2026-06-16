@@ -123,6 +123,7 @@ def ingest_bom(pdf_path: str, nomenclature: str = "") -> dict:
         "uic":           "",
         "item_count":    0,
         "items":         [],
+        "zero_on_hand":  False,
         "warnings":      [],
         "errors":        [],
     }
@@ -235,6 +236,30 @@ def ingest_bom(pdf_path: str, nomenclature: str = "") -> dict:
             out["warnings"].append(f"Serial '{parsed.sn}' recovered from filename.")
         if not out["model"] and parsed.model:
             out["model"] = parsed.model
+
+    # ── PHASE 4: zero-on-hand end-item placeholder ────────────────────────────
+    # A BOM whose components are ALL zero-on-hand extracts to an empty item list
+    # (every component line is dropped by _build_items).  But the END ITEM itself
+    # — an AIR CONDITIONER, a QUADRANT — is still a physical box on the packing
+    # list.  Without a line it gets no box number and vanishes from the master.
+    # Insert ONE placeholder line representing the end item so it gets a box, a
+    # master row, and an individual 1750.  Tag it zero_on_hand so the UI flags it
+    # for review and the user can exclude it before generating if it isn't present.
+    if not out["items"]:
+        label = out["model"] or out["nomenclature"] or stem
+        out["items"] = [{
+            "line_no":       1,
+            "description":   label,
+            "nsn":           out["end_item_niin"] or "",
+            "qty":           1,
+            "unit_of_issue": "EA",
+            "zero_on_hand":  True,
+        }]
+        out["zero_on_hand"] = True
+        out["warnings"].append(
+            "No on-hand components found; inserted a placeholder end-item line. "
+            "Verify this box is physically present, or exclude it before generating."
+        )
 
     # --- Final bookkeeping ----------------------------------------------------
     out["item_count"] = len(out["items"])
