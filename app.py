@@ -510,11 +510,15 @@ def generate_individuals():
         return jsonify({"error": "No occupied boxes — assign items first."}), 400
 
     total_boxes = len(boxes)
+    # Map raw box numbers → sequential 1..N so individual 1750s and the master
+    # always share the same gap-free numbering (e.g. [1,2,9] → {1:1, 2:2, 9:3}).
+    box_seq = {b: i for i, b in enumerate(boxes, start=1)}
     zip_buffer = io.BytesIO()
 
     with tempfile.TemporaryDirectory() as tmpdir:
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
             for box_num in boxes:
+                seq_num = box_seq[box_num]
                 raw_items = packing.items_for_box(boms, box_map, box_num)
                 if not raw_items:
                     continue
@@ -523,10 +527,8 @@ def generate_individuals():
                 if condense:
                     raw_items = packing.condense_items(raw_items)
 
-                # Column (a) "BOX NO." must show this box's assigned number on
-                # EVERY row of its individual 1750 (e.g. box 15 -> every line "15"),
-                # so it matches the box number on the master. line_no drives that
-                # column in the renderer, so we set it to box_num for all rows.
+                # Column (a) "BOX NO." uses the sequential number so it always
+                # matches the master 1750 (which is also re-sequenced 1..N).
                 bom_items = []
                 for it in raw_items:
                     nsn_str = it.get("nsn", "") or ""
@@ -538,7 +540,7 @@ def generate_individuals():
                         sn_part = "SN: " + ", ".join(source_serials)
                         nsn_str = (nsn_str + "  " + sn_part).strip() if nsn_str else sn_part
                     bom_items.append(render_core.BomItem(
-                        line_no=box_num,
+                        line_no=seq_num,
                         description=it.get("description", ""),
                         nsn=nsn_str,
                         qty=it.get("qty", 1),
@@ -589,7 +591,7 @@ def generate_individuals():
                 first_nom = (source_boms[0].get("nomenclature")
                              or source_boms[0].get("model", "box")) if source_boms else "box"
                 safe_nom = re.sub(r'[^\w\-]', '_', first_nom)[:40]
-                zip_name = f"Box_{box_num:03d}_{safe_nom}.pdf"
+                zip_name = f"Box_{seq_num:03d}_{safe_nom}.pdf"
 
                 with open(out_path, "rb") as fh:
                     zf.writestr(zip_name, fh.read())
